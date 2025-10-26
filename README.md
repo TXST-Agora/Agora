@@ -1,3 +1,6 @@
 # Agora
 
-Denise Test Commit
+
+### Contributor
+- Denise Boler
+- Anubhav Bhetuwal
