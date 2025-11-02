@@ -1,2 +1,4 @@
-// TODO: Prettier ignore patterns
-
+node_modules/
+dist/
+build/
+*.log

@@ -1,4 +1,4 @@
-import './lib/socket.js';
+import './lib/socket';
 
 export default function App() {
   return (

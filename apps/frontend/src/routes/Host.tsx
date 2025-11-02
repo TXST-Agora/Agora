@@ -1,2 +1,0 @@
-// TODO: Host page component
-

@@ -1,2 +1,4 @@
-// TODO: Git ignore patterns
-
+node_modules/
+dist/
+.env
+*.log

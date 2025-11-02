@@ -1,2 +1,0 @@
-// TODO: Join page component
-

@@ -1,2 +1,0 @@
-// TODO: Session page component
-
