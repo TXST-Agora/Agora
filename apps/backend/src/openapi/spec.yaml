@@ -1,2 +1,11 @@
-# TODO: OpenAPI specification
-
+openapi: 3.0.3
+info:
+  title: Agora API (Foundation)
+  version: 0.0.1
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
