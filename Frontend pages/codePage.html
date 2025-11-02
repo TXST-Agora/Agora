@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Agora.join</title>
-  <style>
+  <style> 
     :root { --bg:#f6f8fa; --card:#fff; --accent:#702bb0; --muted:#6b7280; }
     html,body { height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:#111; }
     .topbar { display:flex; justify-content:flex-end; padding:12px 16px; }
@@ -59,16 +59,17 @@
   <script>
     document.getElementById('signinBtn').addEventListener('click', () => {
       // replace with real sign-in navigation
-      alert('Sign in clicked');
+      window.alert('Sign in clicked'); 
     });
 
-    function handleSubmit(e) {
-      e.preventDefault();
+    //the process for handling the code submit
+    function handleSubmit(event) {
       const input = document.getElementById('code');
       const msg = document.getElementById('message');
       const code = input.value.trim();
 
-      if (!/^\d{6}$/.test(code)) {
+      //regular expression to check for exactly 6 digits
+      if (!(/^\d{6}$/.test(code))) {
         msg.textContent = 'Please enter exactly 6 digits.';
         msg.style.color = '#b45309';
         input.focus();
@@ -79,7 +80,7 @@
       msg.textContent = 'Code accepted — submitting...';
       msg.style.color = '#065f46';
 
-      // simulate action
+      //sets a timeout to simulate processing delay (DELETE AFTER SERVER IMPLEMENTATION)
       setTimeout(() => {
         alert('Code verified: ' + code);
         msg.textContent = '';
@@ -94,3 +95,4 @@
       const cleaned = e.target.value.replace(/\D/g, '').slice(0,6);
       if (cleaned !== e.target.value) e.target.value = cleaned;
     });
+  </script>
