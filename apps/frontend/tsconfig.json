@@ -1,2 +1,11 @@
-// TODO: Frontend TypeScript configuration
-
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": true
+  },
+  "include": ["src", "vite-env.d.ts"]
+}
