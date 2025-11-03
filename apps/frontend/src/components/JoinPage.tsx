@@ -3,7 +3,8 @@ import './JoinPage.css';
 
 const JoinPage = () => {
   const [sessionCode, setSessionCode] = useState('');
-  const [message, setMessage] = useState<{ text: string; color?: string }>({ text: '' });
+  const [errorMessage, setErrorMessage] = useState('');
+  const [confirmationMessage, setConfirmationMessage] = useState('');
 
   const validateCode = (codeValue: string): boolean => {
     return /^\d{6}$/.test(codeValue);
@@ -12,23 +13,29 @@ const JoinPage = () => {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const cleaned = e.target.value.replace(/\D/g, '').slice(0, 6);
     setSessionCode(cleaned);
+
+    setErrorMessage('');
+    setConfirmationMessage('');
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    setErrorMessage('');
+    
     const trimmedCode = sessionCode.trim();
 
     if (!validateCode(trimmedCode)) {
-      setMessage({ text: 'Please enter exactly 6 digits.', color: '#b45309' });
+      setErrorMessage('Please enter exactly 6 digits.');
+      setConfirmationMessage('');
       return;
     }
 
-    setMessage({ text: 'Code accepted — submitting...', color: '#065f46' });
+    setErrorMessage('');
+    setConfirmationMessage('Submitting...');
 
     setTimeout(() => {
       window.alert('Code verified: ' + trimmedCode);
-      setMessage({ text: '' });
+      setConfirmationMessage('');
     }, 600);
   };
 
@@ -55,14 +62,25 @@ const JoinPage = () => {
             <button type="submit" className="submit">Verify</button>
           </form>
 
-          <div 
-            className="hint" 
-            id="message" 
-            role="status" 
-            aria-live="polite"
-            style={{ color: message.color || '' }}
-          >
-            {message.text}
+          <div className="message-container">
+            {errorMessage && (
+              <div 
+                className="message error-message" 
+                role="alert" 
+                aria-live="polite"
+              >
+                {errorMessage}
+              </div>
+            )}
+            {confirmationMessage && (
+              <div 
+                className="message confirmation-message" 
+                role="status" 
+                aria-live="polite"
+              >
+                {confirmationMessage}
+              </div>
+            )}
           </div>
         </div>
       </div>
