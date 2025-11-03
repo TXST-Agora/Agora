@@ -7,7 +7,7 @@
   padding: 2rem;
 }
 
-.landing-container { max-width: 1200px; width: 100%; text-align: center; }
+.landing-container { height: 70vh; max-width: 1200px; width: 100%; text-align: center; }
 
 .landing-header {
   margin-bottom: 3rem;
