@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
 import "./Landing.css";
 
 const Landing = () => {
+  const navigate = useNavigate();
+
   return (
     <main className="landing">
       <div className="landing-container">
@@ -17,7 +18,7 @@ const Landing = () => {
           <article className="action-card join-card" tabIndex={0}>
             <h2>Join</h2>
             <p>Enter a code to jump into a live discussion.</p>
-            <button className="btn btn-join">Join Forum</button>
+            <button className="btn btn-join" onClick={() => navigate('/join')}>Join Forum</button>
           </article>
 
           <article className="action-card host-card" tabIndex={0}>

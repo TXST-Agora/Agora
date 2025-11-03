@@ -1,10 +1,11 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import './App.css';
+
 import Landing from './components/Landing';
 import Navbar from './components/Navbar';
 import JoinPage from './components/JoinPage';
-import './App.css';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-export default function App() {
+function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
@@ -18,3 +19,5 @@ export default function App() {
 
   );
 }
+
+export default App;
