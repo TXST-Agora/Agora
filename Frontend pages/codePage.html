@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agora.join</title>
+  <style> 
+    :root { --bg:#f6f8fa; --card:#fff; --accent:#702bb0; --muted:#6b7280; }
+    html,body { height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:#111; }
+    .topbar { display:flex; justify-content:flex-end; padding:12px 16px; }
+    .signin-btn {
+      font-size:13px; padding:6px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.08);
+      background:linear-gradient(#fff,#f7fbff); color:var(--accent); cursor:pointer;
+    }
+    .container { display:flex; align-items:center; justify-content:center; height:calc(100% - 56px); }
+    .card {
+      width:360px; max-width:90%; background:var(--card); border-radius:10px; box-shadow:0 6px 20px rgba(16,24,40,0.06);
+      padding:28px; text-align:center;
+    }
+    h1 { margin:0 0 8px; font-size:20px; }
+    p { margin:0 0 18px; color:var(--muted); font-size:14px; }
+    .code-input {
+      width:100%; padding:14px 12px; font-size:20px; letter-spacing:6px; text-align:center;
+      border:1px solid #e6e9ef; border-radius:8px; outline:none;
+    }
+    .code-input:focus { border-color:var(--accent); box-shadow:0 4px 18px rgba(43,108,176,0.12); }
+    .submit { margin-top:14px; width:100%; padding:10px 12px; background:var(--accent); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:15px; }
+    .hint { margin-top:10px; font-size:13px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="signin-btn" id="signinBtn" aria-label="Sign in">Sign in</button>
+  </div>
+
+  <div class="container">
+    <div class="card" role="region" aria-labelledby="pageTitle">
+      <h1 id="pageTitle">Enter 6‑Digit Session Code</h1>
+
+      <form id="codeForm" onsubmit="return handleSubmit(event)" autocomplete="off" novalidate>
+        <input
+          id="code"
+          name="code"
+          class="code-input"
+          inputmode="numeric"
+          pattern="[0-9]{6}"
+          maxlength="6"
+          placeholder="● ● ● ● ● ●"
+          aria-label="Six digit code"
+          required
+        />
+        <button type="submit" class="submit">Verify</button>
+      </form>
+
+      <div class="hint" id="message"></div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('signinBtn').addEventListener('click', () => {
+      // replace with real sign-in navigation
+      window.alert('Sign in clicked'); 
+    });
+
+    //the process for handling the code submit
+    function handleSubmit(event) {
+      const input = document.getElementById('code');
+      const msg = document.getElementById('message');
+      const code = input.value.trim();
+
+      //regular expression to check for exactly 6 digits
+      if (!(/^\d{6}$/.test(code))) {
+        msg.textContent = 'Please enter exactly 6 digits.';
+        msg.style.color = '#b45309';
+        input.focus();
+        return false;
+      }
+
+      // Replace this with actual verification logic (fetch / navigate)
+      msg.textContent = 'Code accepted — submitting...';
+      msg.style.color = '#065f46';
+
+      //sets a timeout to simulate processing delay (DELETE AFTER SERVER IMPLEMENTATION)
+      setTimeout(() => {
+        alert('Code verified: ' + code);
+        msg.textContent = '';
+      }, 600);
+
+      return false;
+    }
+
+    // optional: allow paste of full code and auto-trim non-digits
+    const codeInput = document.getElementById('code');
+    codeInput.addEventListener('input', (e) => {
+      const cleaned = e.target.value.replace(/\D/g, '').slice(0,6);
+      if (cleaned !== e.target.value) e.target.value = cleaned;
+    });
+  </script>
