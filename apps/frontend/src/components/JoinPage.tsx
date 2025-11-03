@@ -2,26 +2,22 @@ import { useState, FormEvent, ChangeEvent } from 'react';
 import './JoinPage.css';
 
 const JoinPage = () => {
-  const [code, setCode] = useState('');
+  const [sessionCode, setSessionCode] = useState('');
   const [message, setMessage] = useState<{ text: string; color?: string }>({ text: '' });
 
   const validateCode = (codeValue: string): boolean => {
     return /^\d{6}$/.test(codeValue);
   };
 
-  const handleSignIn = () => {
-    window.alert('Sign in clicked');
-  };
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const cleaned = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setCode(cleaned);
+    setSessionCode(cleaned);
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const trimmedCode = code.trim();
+    const trimmedCode = sessionCode.trim();
 
     if (!validateCode(trimmedCode)) {
       setMessage({ text: 'Please enter exactly 6 digits.', color: '#b45309' });
@@ -38,17 +34,6 @@ const JoinPage = () => {
 
   return (
     <div className="join-page">
-      <div className="topbar">
-        <button 
-          className="signin-btn" 
-          onClick={handleSignIn}
-          aria-label="Sign in" 
-          type="button"
-        >
-          Sign in
-        </button>
-      </div>
-
       <div className="container">
         <div className="card" role="region" aria-labelledby="pageTitle">
           <h1 id="pageTitle">Enter 6‑Digit Session Code</h1>
@@ -61,9 +46,9 @@ const JoinPage = () => {
               inputMode="numeric"
               pattern="[0-9]{6}"
               maxLength={6}
-              placeholder="● ● ● ● ● ●"
+              placeholder=""
               aria-label="Six digit code"
-              value={code}
+              value={sessionCode}
               onChange={handleInputChange}
               required
             />

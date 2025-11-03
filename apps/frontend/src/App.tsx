@@ -9,7 +9,7 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
-      <Navbar title="Agora"/>
+      <Navbar/>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/join" element={<JoinPage />} />
