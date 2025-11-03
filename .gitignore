@@ -3,4 +3,5 @@ dist/
 .env
 *.log
 .vscode/
-
+.vite/
+**/.vite/

@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import "./Landing.css";
 
-export default function Landing() {
+const Landing = () => {
   return (
     <main className="landing">
       <div className="landing-container">
@@ -28,3 +30,5 @@ export default function Landing() {
     </main>
   );
 }
+
+export default Landing;

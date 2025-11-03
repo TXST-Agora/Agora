@@ -6,7 +6,7 @@ type NavbarProps = {
   rightActions?: React.ReactNode;
 };
 
-export default function Navbar({ title = "Agora", rightActions }: NavbarProps) {
+const Navbar = ({ title = "Agora", rightActions }: NavbarProps) => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -16,3 +16,5 @@ export default function Navbar({ title = "Agora", rightActions }: NavbarProps) {
     </nav>
   );
 }
+
+export default Navbar;
