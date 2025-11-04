@@ -4,6 +4,8 @@
 - Denise Boler
 - Anubhav Bhetuwal
 - Max Cantrell
+- ADD NAME HERE 
+
 
 ## Getting Started
 ### Prerequisites
