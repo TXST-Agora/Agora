@@ -1,0 +1,27 @@
+:root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #f3f4f6;
+    --text: #0f172a;
+    --muted: #475569;
+    --border: #e5e7eb;
+    --ring: #cbd5e1;
+  
+    --accent: #16a34a;
+    --accent-strong: #15803d;
+    --accent-ghost: rgba(22,163,74,0.12);
+  
+    --shadow-sm: 0 2px 8px rgba(15,23,42,0.06);
+    --shadow-md: 0 10px 30px rgba(15,23,42,0.10);
+
+    --host: #334155;         /* slate-700 */
+    --host-strong: #1f2937;  /* gray-800 */
+    --host-ghost: rgba(51,65,85,0.18);
+  }
+  
+  /* --- Global font (makes navbar match exactly) --- */
+  html, body, .navbar, .landing, .action-card, .btn, .btn-nav {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+  }

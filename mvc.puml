@@ -1,0 +1,77 @@
+@startuml
+title Agora – MVC Overview (Sprint 1)
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment left
+
+rectangle "Frontend (React + TypeScript)" as FE {
+  package "View" as View {
+    [Landing.tsx] as Landing
+    [Navbar.tsx] as Navbar
+    [Join (to be React-ified)] as JoinView
+  }
+
+  package "Controller" as Controller {
+    [App.tsx] as App
+    [React Router] as Router
+  }
+
+  package "Model Adapter" as ModelAdapter {
+    [socket.ts] as Socket
+    [REST API Client] as Api
+  }
+}
+
+rectangle "Backend (Node / Express)" as BE {
+  [ForumController] as ForumCtrl
+  [AuthController] as AuthCtrl
+  [SessionService] as SessionSvc
+  [UserService] as UserSvc
+  [REST Endpoints\n/host  /join  /sessions] as Rest
+  [WebSocket Gateway] as Ws
+  database "DB\n(Forum, Session, User)" as DB
+}
+
+' --- View -> Controller flows
+Landing -down-> App : UI events\n(button clicks)
+Navbar -down-> App : UI events
+App -right-> Router : route changes
+Router -down-> Landing : render / route match
+Router -down-> JoinView : render /join
+
+' --- Controller -> Model Adapter
+App -right-> Socket : initialize / use
+Landing -right-> Api : fetch() / join code
+
+' --- Frontend <-> Backend data paths
+Socket -right-> Ws : WS messages\n(join, leave, broadcast)
+Api -right-> Rest : HTTP requests\n(POST /join, POST /host)
+
+' --- Backend internals
+ForumCtrl -down-> SessionSvc
+AuthCtrl -down-> UserSvc
+SessionSvc -down-> DB
+UserSvc -down-> DB
+Ws -down-> DB : optional lookups
+Rest -down-> DB : CRUD
+
+' --- Notes
+note right of JoinView
+Current file: joinPage.tsx is a DOM script.
+Convert to a React component (Join.tsx)
+so it participates as a proper View.
+end note
+
+note top of Socket
+Wraps client realtime events and
+abstracts WebSocket usage for Views/Controllers.
+end note
+
+note top of Api
+Thin fetch wrapper for REST calls.
+Keep pure and side-effect free.
+end note
+
+@enduml
