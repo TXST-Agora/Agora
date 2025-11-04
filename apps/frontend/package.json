@@ -6,7 +6,10 @@
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "react": "^18.3.1",
