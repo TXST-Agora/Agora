@@ -1,10 +1,11 @@
 # Agora
 
 ### Contributors
-- Denise Boler
 - Anubhav Bhetuwal
+- Denise Boler
+- Trinity Boston 
 - Max Cantrell
-- ADD NAME HERE 
+
 
 
 ## Getting Started
