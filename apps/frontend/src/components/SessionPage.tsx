@@ -7,8 +7,8 @@ const SessionPage = () => {
         <div className="session-page">
 
             <main className="content">
-                <h1>Session</h1>
-                <p>Content goes here. This area scrolls under the fixed top navigation bar.</p>
+                <h1>Welcome to the Session!</h1>
+                <p>It's pretty quiet in here...press the "+" button in the bottom right to get started!</p>
             </main>
 
             <div
