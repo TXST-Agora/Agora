@@ -1,0 +1,87 @@
+ .content {
+    padding: 88px 20px 140px; /* leave space for nav & fab */
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* FAB container */
+.fab-container {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    z-index: 50;
+}
+
+.fab-main {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(180deg,#ff7a59,#ff4d6d);
+    color: white;
+    border: none;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+.fab-main:focus { outline: 2px solid rgba(255,255,255,0.3); }
+
+.fab-main.active { transform: rotate(45deg); box-shadow: 0 12px 28px rgba(0,0,0,0.28); }
+
+.fab-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    transform-origin: bottom right;
+    transition: opacity .18s ease, transform .18s ease;
+    opacity: 0;
+    transform: translateY(8px) scale(.95);
+    pointer-events: none;
+}
+.fab-options.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.fab-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    color: #222;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: none;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    cursor: pointer;
+    font-weight: 600;
+}
+.fab-option .label {
+    font-size: 14px;
+}
+.fab-option .circle.small {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(180deg,#ffd166,#ffb86b);
+    color: #333;
+    font-weight: 700;
+}
+
+/* small responsive tweak */
+@media (max-width: 480px) {
+    .fab-container { right: 16px; bottom: 16px; }
+    .fab-main { width: 56px; height: 56px; font-size: 24px; }
+}
