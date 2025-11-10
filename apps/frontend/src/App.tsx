@@ -4,6 +4,7 @@ import './App.css';
 import Landing from './components/Landing';
 import Navbar from './components/Navbar';
 import JoinPage from './components/JoinPage';
+import Host from './components/Host';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/join" element={<JoinPage />} />
+          <Route path="/host" element={<Host />} />
         </Routes>
       </div>
     </BrowserRouter>
