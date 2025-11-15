@@ -1,17 +1,19 @@
-import { useNavigate } from "react-router-dom";
 import "./Navbar.css";
 
 const Navbar = () => {
-  const navigate = useNavigate();
 
   const handleSignIn = () => {
     window.alert('Sign in clicked');
   };
 
+  const handleHomeClick = () => {
+    window.location.href = '/';
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <div className="navbar-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+        <div className="navbar-brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
           Agora
         </div>
         <button 
