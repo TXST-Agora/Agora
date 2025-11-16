@@ -9,14 +9,14 @@ describe('JoinPage', () => {
     render(<JoinPage />);
 
     expect(
-      screen.getByText(/enter 6[\u2011-]digit session code/i)
+      screen.getByText(/enter session code/i)
     ).toBeInTheDocument();
 
     expect(screen.getByLabelText(/six digit code/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /verify/i })).toBeInTheDocument();
   });
 
-  it('sanitizes input to digits only and max length 6; clears prior messages on change', async () => {
+  it('sanitizes input to uppercase letters, digits only, and max length 6; clears prior messages on change', async () => {
     const user = userEvent.setup();
     render(<JoinPage />);
 
@@ -26,12 +26,12 @@ describe('JoinPage', () => {
     // First, trigger an error so we can verify it clears on change
     await user.click(submit);
     const err = screen.getByRole('alert');
-    expect(err).toHaveTextContent(/please enter exactly 6 digits/i);
+    expect(err).toHaveTextContent(/please enter exactly 6 characters/i);
 
     // Now type mixed characters; component should keep only digits and slice to 6
     await user.clear(input);
-    await user.type(input, '12a34!5678'); // -> "123456"
-    expect(input.value).toBe('123456');
+    await user.type(input, '12a!3456'); // -> "123456"
+    expect(input.value).toBe('12A345');
 
     // Error message should be cleared after input change
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('JoinPage', () => {
     await user.click(screen.getByRole('button', { name: /verify/i }));
 
     const err = screen.getByRole('alert');
-    expect(err).toHaveTextContent(/please enter exactly 6 digits/i);
+    expect(err).toHaveTextContent(/please enter exactly 6 characters/i);
 
     // No confirmation/status message when invalid
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('JoinPage', () => {
     expect(alertSpy).toHaveBeenCalledWith('Code verified: 123456');
 
     // Status message should be cleared
-    const msgContainer = screen.getByRole('region', { name: /enter 6[\u2011-]digit session code/i });
+    const msgContainer = screen.getByRole('region', { name: /enter session code/i });
     expect(within(msgContainer).queryByText(/submitting/i)).not.toBeInTheDocument();
 
     alertSpy.mockRestore();

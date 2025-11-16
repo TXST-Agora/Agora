@@ -7,11 +7,11 @@ const JoinPage = () => {
   const [confirmationMessage, setConfirmationMessage] = useState('');
 
   const validateCode = (codeValue: string): boolean => {
-    return /^\d{6}$/.test(codeValue);
+    return /^[A-Z0-9]{6}$/.test(codeValue);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 6);
+    const cleaned = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase();
     setSessionCode(cleaned);
 
     setErrorMessage('');
@@ -25,7 +25,7 @@ const JoinPage = () => {
     const trimmedCode = sessionCode.trim();
 
     if (!validateCode(trimmedCode)) {
-      setErrorMessage('Please enter exactly 6 digits.');
+      setErrorMessage('Please enter exactly 6 characters.');
       setConfirmationMessage('');
       return;
     }
@@ -43,15 +43,15 @@ const JoinPage = () => {
     <div className="join-page">
       <div className="container">
         <div className="card" role="region" aria-labelledby="pageTitle">
-          <h1 id="pageTitle">Enter 6‑Digit Session Code</h1>
+          <h1 id="pageTitle">Enter Session Code</h1>
 
           <form id="codeForm" onSubmit={handleSubmit} autoComplete="off" noValidate>
             <input
               id="code"
               name="code"
               className="code-input"
-              inputMode="numeric"
-              pattern="[0-9]{6}"
+              inputMode="text"
+              pattern="[A-Z0-9]{6}"
               maxLength={6}
               placeholder=""
               aria-label="Six digit code"
