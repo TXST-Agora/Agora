@@ -32,6 +32,8 @@
 /* --- Cards with animated movement on hover --- */
 .action-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -70,10 +72,18 @@
 }
 
 /* Rails + icon color */
-.join-card { border-top: 4px solid var(--accent); }
-.host-card { border-top: 4px solid var(--accent-strong); }
-
-.card-icon { font-size: 2rem; margin-bottom: 0.7rem; color: var(--accent-strong); }
+.action-card.join-card { border-top: 4px solid var(--accent) !important; }
+.action-card.host-card { 
+  border-top: 4px solid var(--host-accent) !important;
+  transition:
+    transform 220ms cubic-bezier(.2,.8,.2,1),
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    border-top-color 220ms cubic-bezier(.2,.8,.2,1);
+}
+.action-card.host-card:hover {
+  border-top-color: var(--host-hover) !important;
+}
 
 .action-card h2 {
   font-size: 1.45rem; font-weight: 700; color: var(--text);
@@ -82,6 +92,10 @@
 .action-card p {
   font-size: 0.98rem; color: var(--muted);
   margin: 0 0 1.1rem 0; line-height: 1.55;
+}
+
+.action-card .btn {
+  margin-top: auto;
 }
 
 /* --- ONE button system (ensures consistency) --- */
@@ -112,12 +126,15 @@
 
 /* Solid secondary (Host) */
 .btn-host {
-  background: linear-gradient(180deg, var(--host), var(--host-strong));
+  background: linear-gradient(180deg, var(--host-accent), var(--host-accent-strong));
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 6px 16px var(--host-ghost);
+  box-shadow: 0 6px 16px var(--host-accent-ghost);
+  transition: transform 140ms ease, background 220ms ease, box-shadow 220ms ease;
 }
-.btn-host:hover { transform: translateY(-1px); }
+.btn-host:hover { 
+  transform: translateY(-1px);
+}
 .btn-host:active { transform: translateY(0); }
 
 
@@ -161,5 +178,4 @@
   .landing-title { font-size: 3rem; }
   .landing-subtitle { font-size: 1rem; }
   .action-card { padding: 1.7rem 1.25rem; }
-  .card-icon { font-size: 1.6rem; }
 }
