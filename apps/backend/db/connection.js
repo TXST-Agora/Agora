@@ -1,7 +1,13 @@
+import 'dotenv/config';
 import { MongoClient, ServerApiVersion } from "mongodb";
 import mongoose from "mongoose";
 
-const uri = "mongodb+srv://trintb04_db_user:yAomVq9hF2X5Wi3R@agora-db.i1gktmu.mongodb.net/";
+const uri = process.env.MONGO_URI;
+
+if (!uri) {
+    console.error("Error: MONGO_URI is not defined in .env file");
+    process.exit(1);
+}
 
 /*const client = new MongoClient(uri, {
   serverApi: {
