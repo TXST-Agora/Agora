@@ -24,7 +24,11 @@
     color: var(--text);
   }
   
-  .navbar-actions { display: flex; gap: 8px; }
+  .navbar-actions { 
+    display: flex; 
+    align-items: center;
+    gap: 8px; 
+  }
   
   /* Make nav buttons visually balanced inside 64px bar */
   .btn-nav {
@@ -39,15 +43,17 @@
     font-size: 0.95rem;
     padding: 0 12px;
     border-radius: 6px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background: linear-gradient(#fff, #f7fbff);
+    border: 1px solid var(--border);
+    background: var(--surface);
     color: var(--accent);
     cursor: pointer;
-    transition: transform 140ms ease, background-color 140ms ease;
+    transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
   }
 
   .signin-btn:hover {
     transform: translateY(-1px);
+    background: var(--surface-2);
+    border-color: var(--border);
   }
 
   .signin-btn:active {
@@ -57,5 +63,10 @@
   .signin-btn:focus-visible {
     outline: none;
     box-shadow: 0 0 0 4px var(--accent-ghost), 0 0 0 1.5px var(--accent);
+  }
+
+  /* Dark mode adjustments for navbar */
+  :root.dark .signin-btn {
+    border-color: var(--border);
   }
   

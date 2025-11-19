@@ -1,4 +1,5 @@
 import "./Navbar.css";
+import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
 
@@ -16,14 +17,17 @@ const Navbar = () => {
         <div className="navbar-brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
           Agora
         </div>
-        <button 
-          className="signin-btn btn-nav" 
-          onClick={handleSignIn}
-          aria-label="Sign in" 
-          type="button"
-        >
-          Sign in
-        </button>
+        <div className="navbar-actions">
+          <ThemeToggle />
+          <button 
+            className="signin-btn btn-nav" 
+            onClick={handleSignIn}
+            aria-label="Sign in" 
+            type="button"
+          >
+            Sign in
+          </button>
+        </div>
       </div>
     </nav>
   );
