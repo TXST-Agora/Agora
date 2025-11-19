@@ -2,7 +2,9 @@
   "private": true,
   "name": "agora",
   "packageManager": "pnpm@9",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "pnpm -C apps/backend dev & pnpm -C apps/frontend dev",
     "build": "pnpm -C apps/backend build && pnpm -C apps/frontend build",

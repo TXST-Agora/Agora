@@ -4,6 +4,8 @@ import './App.css';
 import Landing from './components/Landing';
 import Navbar from './components/Navbar';
 import JoinPage from './components/JoinPage';
+import Host from './components/Host';
+import SessionPage from './components/SessionPage';
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/join" element={<JoinPage />} />
+          <Route path="/host" element={<Host />} />
+          <Route path="/session" element={<SessionPage />} />
         </Routes>
       </div>
     </BrowserRouter>

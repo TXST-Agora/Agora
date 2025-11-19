@@ -17,6 +17,11 @@
     --host: #334155;         /* slate-700 */
     --host-strong: #1f2937;  /* gray-800 */
     --host-ghost: rgba(51,65,85,0.18);
+    
+    --host-accent: #334155;                 /* blue-700 */
+    --host-accent-strong: #1f2937;         /* blue-800 */
+    --host-accent-ghost: rgba(29,78,216,0.12);
+    
   }
   
   /* --- Global font (makes navbar match exactly) --- */

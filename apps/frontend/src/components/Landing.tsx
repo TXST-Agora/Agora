@@ -24,7 +24,7 @@ const Landing = () => {
           <article className="action-card host-card" tabIndex={0}>
             <h2>Host</h2>
             <p>Start a forum and invite participants instantly.</p>
-            <button className="btn btn-host">Host Forum</button>
+            <button className="btn btn-host" onClick={() => navigate('/host')}>Host Forum</button>
           </article>
         </section>
       </div>
