@@ -17,6 +17,7 @@ const SessionPage = () => {
         alert(`Question submitted: ${trimmed}`);
         setQuestion("");
         setShowAskModal(false);
+        newSessionElement("question");
     };
 
     const cancelAsk = () => {
@@ -24,13 +25,25 @@ const SessionPage = () => {
         setShowAskModal(false);
     };
 
+    const newSessionElement = (type: string) => { 
+
+        setVisible(false);
+        /* generate session element with attributes to be used in backend:
+            	- icon type? same style icons
+                - element id
+                - instantiation time
+                - end time
+                - object created on submit
+        */
+    }
+
     return (
         <div className="session-page">
 
-            <main className="content">
+            {visible && (<main className="content">
                 <h1>Welcome to the Session!</h1>
                 <p>It's pretty quiet in here...press the "+" button in the bottom right to get started!</p>
-            </main>
+            </main>)}
 
             <div
                 className="fab-container"
@@ -46,7 +59,6 @@ const SessionPage = () => {
                         className="fab-option"
                         onClick={() => {
                             setOpen(false);
-                            setVisible(false);
                             setShowAskModal(true);
                         }}
                     >
@@ -96,7 +108,7 @@ const SessionPage = () => {
                             onChange={(e) => setQuestion(e.target.value)}
                             placeholder="Type your question here..."
                             rows={6}
-                            
+
                         />
 
                         <div className="modal-buttons">
