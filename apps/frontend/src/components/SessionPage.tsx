@@ -17,13 +17,11 @@ const SessionPage = () => {
         alert(`Question submitted: ${trimmed}`);
         setQuestion("");
         setShowAskModal(false);
-        setVisible(true);
     };
 
     const cancelAsk = () => {
         setQuestion("");
         setShowAskModal(false);
-        setVisible(true);
     };
 
     return (
@@ -98,6 +96,7 @@ const SessionPage = () => {
                             onChange={(e) => setQuestion(e.target.value)}
                             placeholder="Type your question here..."
                             rows={6}
+                            
                         />
 
                         <div className="modal-buttons">
