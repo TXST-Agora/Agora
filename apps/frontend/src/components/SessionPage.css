@@ -119,12 +119,13 @@
 .modal h2 { margin: 0 0 12px; }
 .question-input {
     width: 100%;
-    padding: 12px;
     border-radius: 8px;
     border: 1px solid rgba(0,0,0,0.12);
     resize: vertical;
     font-size: 14px;
     margin-bottom: 12px;
+    min-height: 80px;
+    max-height: 500px;
 }
 .modal-buttons {
     display: flex;
