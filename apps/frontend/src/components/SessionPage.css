@@ -66,8 +66,8 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    background: white;
-    color: #222;
+    background: var(--bg);
+    color: var(--text);
     padding: 8px 12px;
     border-radius: 999px;
     border: none;
