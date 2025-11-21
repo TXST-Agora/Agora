@@ -6,6 +6,8 @@ const SessionPage = () => {
     const [showAskModal, setShowAskModal] = useState(false);
     const [question, setQuestion] = useState("");
 
+    const [submittedFabs, setSubmittedFabs] = useState<Array<{ id: string; question: string }>>([]);
+
     const submitQuestion = () => {
         const trimmed = question.trim();
         if (!trimmed) {
@@ -15,9 +17,22 @@ const SessionPage = () => {
         }
         // Replace this with real submit logic later
         alert(`Question submitted: ${trimmed}`);
+
+        // add a new fab entry to be rendered
+        
+        /* generate session element with attributes to be used in backend:
+            	- icon type? same style icons
+                - element id
+                - instantiation time
+                - end time
+                - object created on submit
+        */
+        const id = `q-${Date.now()}`;
+        setSubmittedFabs((s) => [...s, { id, question: trimmed }]);
+
         setQuestion("");
         setShowAskModal(false);
-        newSessionElement("question");
+        setVisible(false);
     };
 
     const cancelAsk = () => {
@@ -26,15 +41,12 @@ const SessionPage = () => {
     };
 
     const newSessionElement = (type: string) => { 
+        
+       return(<>
+       <button className="fab-element"></button>
+       <span className="circle small">?</span>
 
-        setVisible(false);
-        /* generate session element with attributes to be used in backend:
-            	- icon type? same style icons
-                - element id
-                - instantiation time
-                - end time
-                - object created on submit
-        */
+       </>)
     }
 
     return (
@@ -86,6 +98,15 @@ const SessionPage = () => {
                 >
                     <span className="plus">+</span>
                 </button>
+            </div>
+
+            {/* Generated fabs appended for each submitted question */}
+            <div className="generated-fabs" aria-live="polite">
+                {submittedFabs.map((f, idx) => (
+                    <button key={f.id} className="fab-element" title={`Question: ${f.question}`} aria-label={`submitted-question-${idx}`}>
+                        <span className="circle small">?</span>
+                    </button>
+                ))}
             </div>
 
             {showAskModal && (
