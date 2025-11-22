@@ -6,7 +6,7 @@ const SessionPage = () => {
     const [showAskModal, setShowAskModal] = useState(false);
     const [question, setQuestion] = useState("");
 
-    const [submittedFabs, setSubmittedFabs] = useState<Array<{ id: string; question: string }>>([]);
+    const [submittedElements, setSubmittedElements] = useState<Array<{ id: number; type: string; content: string; submitTime: string;  }>>([]);
 
     const submitQuestion = () => {
         const trimmed = question.trim();
@@ -27,8 +27,9 @@ const SessionPage = () => {
                 - end time
                 - object created on submit
         */
-        const id = `q-${Date.now()}`;
-        setSubmittedFabs((s) => [...s, { id, question: trimmed }]);
+        const id = submittedElements.length;
+        const date = new Date();
+        setSubmittedElements((s) => [...s, { id, type: "question", content: trimmed, submitTime: date.toISOString() }]);
 
         setQuestion("");
         setShowAskModal(false);
@@ -39,15 +40,6 @@ const SessionPage = () => {
         setQuestion("");
         setShowAskModal(false);
     };
-
-    const newSessionElement = (type: string) => { 
-        
-       return(<>
-       <button className="fab-element"></button>
-       <span className="circle small">?</span>
-
-       </>)
-    }
 
     return (
         <div className="session-page">
@@ -102,8 +94,8 @@ const SessionPage = () => {
 
             {/* Generated fabs appended for each submitted question */}
             <div className="generated-fabs" aria-live="polite">
-                {submittedFabs.map((f, idx) => (
-                    <button key={f.id} className="fab-element" title={`Question: ${f.question}`} aria-label={`submitted-question-${idx}`}>
+                {submittedElements.map((f, idx) => (
+                    <button key={f.id} className="fab-element" title={`${f.type}: ${f.content}`} aria-label={`submitted-${f.type}-${idx}`}>
                         <span className="circle small">?</span>
                     </button>
                 ))}
