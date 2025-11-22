@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import './SessionPage.css';
 const SessionPage = () => {
     const [open, setOpen] = useState(false);
@@ -6,7 +6,8 @@ const SessionPage = () => {
     const [showAskModal, setShowAskModal] = useState(false);
     const [question, setQuestion] = useState("");
 
-    const [submittedElements, setSubmittedElements] = useState<Array<{ id: number; type: string; content: string; submitTime: string;  }>>([]);
+    const [submittedElements, setSubmittedElements] = useState<Array<{ id: number; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     const submitQuestion = () => {
         const trimmed = question.trim();
@@ -18,18 +19,51 @@ const SessionPage = () => {
         // Replace this with real submit logic later
         alert(`Question submitted: ${trimmed}`);
 
-        // add a new fab entry to be rendered
-        
-        /* generate session element with attributes to be used in backend:
-            	- icon type? same style icons
-                - element id
-                - instantiation time
-                - end time
-                - object created on submit
-        */
+        // add a new fab entry to be rendered with a random non-overlapping position
         const id = submittedElements.length;
         const date = new Date();
-        setSubmittedElements((s) => [...s, { id, type: "question", content: trimmed, submitTime: date.toISOString() }]);
+
+        // compute a random non-overlapping position inside the session container
+        const elemSize = 48; // px (matches CSS .fab-element size)
+        const gap = 8; // px minimum gap between fabs
+        const rect = containerRef.current?.getBoundingClientRect();
+        const containerWidth = rect ? rect.width : window.innerWidth;
+        const containerHeight = rect ? rect.height : window.innerHeight;
+
+        const maxLeft = Math.max(0, containerWidth - elemSize - 8);
+        const maxTop = Math.max(0, containerHeight - elemSize - 8);
+
+        const overlaps = (x: number, y: number) => {
+            for (const e of submittedElements) {
+                if (e.x == null || e.y == null) continue;
+                const ax1 = x - gap;
+                const ay1 = y - gap;
+                const ax2 = x + elemSize + gap;
+                const ay2 = y + elemSize + gap;
+
+                const bx1 = e.x - gap;
+                const by1 = e.y - gap;
+                const bx2 = e.x + elemSize + gap;
+                const by2 = e.y + elemSize + gap;
+
+                const noOverlap = ax2 < bx1 || ax1 > bx2 || ay2 < by1 || ay1 > by2;
+                if (!noOverlap) return true;
+            }
+            return false;
+        };
+
+        let left = Math.floor(Math.random() * (maxLeft + 1));
+        let top = Math.floor(Math.random() * (maxTop + 1));
+        let attempts = 0;
+        const maxAttempts = 60;
+        while (overlaps(left, top) && attempts < maxAttempts) {
+            left = Math.floor(Math.random() * (maxLeft + 1));
+            top = Math.floor(Math.random() * (maxTop + 1));
+            attempts++;
+        }
+
+        // store position (even if overlapping after attempts)
+        setSubmittedElements((s) => [...s, { id, type: "question", content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
 
         setQuestion("");
         setShowAskModal(false);
@@ -42,7 +76,7 @@ const SessionPage = () => {
     };
 
     return (
-        <div className="session-page">
+        <div className="session-page" ref={containerRef}>
 
             {visible && (<main className="content">
                 <h1>Welcome to the Session!</h1>
@@ -95,7 +129,13 @@ const SessionPage = () => {
             {/* Generated fabs appended for each submitted question */}
             <div className="generated-fabs" aria-live="polite">
                 {submittedElements.map((f, idx) => (
-                    <button key={f.id} className="fab-element" title={`${f.type}: ${f.content}`} aria-label={`submitted-${f.type}-${idx}`}>
+                    <button
+                        key={f.id}
+                        className="fab-element"
+                        title={`${f.type}: ${f.content}`}
+                        aria-label={`submitted-${f.type}-${idx}`}
+                        style={{ left: f.x != null ? `${f.x}px` : undefined, top: f.y != null ? `${f.y}px` : undefined }}
+                    >
                         <span className="circle small">?</span>
                     </button>
                 ))}
