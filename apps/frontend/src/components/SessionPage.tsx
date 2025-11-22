@@ -19,7 +19,14 @@ const SessionPage = () => {
         // Replace this with real submit logic later
         alert(`Question submitted: ${trimmed}`);
 
-        // add a new fab entry to be rendered with a random non-overlapping position
+        /* generate session element with attributes to be used in backend:
+            	- icon type
+                - element id
+                - instantiation time
+                - end time
+                - position
+                - object created on submit
+        */
         const id = submittedElements.length;
         const date = new Date();
 
@@ -143,7 +150,7 @@ const SessionPage = () => {
 
             {showAskModal && (
                 <div
-                    className="modal-overlay"
+                    className= {`modal-overlay ${showAskModal ? "visible" : ""}`}
                     role="dialog"
                     aria-modal="true"
                     aria-label="Ask a question dialog"
@@ -151,7 +158,7 @@ const SessionPage = () => {
                         if (e.key === 'Escape') cancelAsk();
                     }}
                 >
-                    <div className="modal">
+                    <div className={`modal ${showAskModal ? "visible": ""}`}>
                         <h2>Ask a Question</h2>
                         <label htmlFor="question-input" className="visually-hidden">Type your question</label>
                         <textarea
