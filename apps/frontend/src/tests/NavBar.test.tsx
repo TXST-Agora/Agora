@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Navbar from '../components/Navbar';
+import { ThemeProvider } from '../contexts/ThemeContext';
 
 describe('Navbar routing', () => {
   let originalLocation: Location;
@@ -36,12 +37,42 @@ describe('Navbar routing', () => {
   });
 
   it('sets window.location.href to / when Agora is clicked', async () => {
-    render(<Navbar />);
+    render(
+      <ThemeProvider>
+        <Navbar />
+      </ThemeProvider>
+    );
 
     const user = userEvent.setup();
     const brand = screen.getByText(/agora/i);
     await user.click(brand);
 
     expect(window.location.href).toBe('/');
+  });
+});
+
+describe('Navbar theme toggle', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.classList.remove('dark');
+  });
+
+  it('toggles between light and dark themes when clicking the theme button', async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider>
+        <Navbar />
+      </ThemeProvider>
+    );
+
+    const toggleButton = screen.getByRole('button', { name: /switch to dark mode/i });
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(localStorage.getItem('agora-theme')).toBe('light');
+
+    await user.click(toggleButton);
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(localStorage.getItem('agora-theme')).toBe('dark');
+    expect(toggleButton).toHaveAccessibleName(/switch to light mode/i);
   });
 });
