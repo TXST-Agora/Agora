@@ -1,8 +1,9 @@
 .session-page {
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    position: relative; /* container for absolutely positioned generated fabs */
 }
 
 .content {
@@ -140,16 +141,13 @@
 
 /* generated fabs (created when a question is submitted) */
 .generated-fabs {
-    position: fixed;
-    right: 24px;
-    bottom: 110px; /* sit above main FAB */
-    display: flex;
-    flex-direction: column-reverse; /* newest on top */
-    gap: 10px;
+    position: absolute; /* positioned inside .session-page */
+    inset: 0;
     z-index: 60;
-    pointer-events: none; /* let inner buttons opt into pointer-events */
+    pointer-events: none; /* container ignores pointer events; inner fabs opt in */
 }
 .generated-fabs .fab-element {
+    position: absolute; /* left/top provided inline by React */
     pointer-events: auto;
     width: 48px;
     height: 48px;
@@ -157,7 +155,7 @@
     background: linear-gradient(180deg,var(--accent), var(--accent-strong));
     color: white;
     border: none;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 8px 20px rgba(0,0,0,0.18);
@@ -166,7 +164,7 @@
 .circle.small {
     width: 28px;
     height: 28px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
