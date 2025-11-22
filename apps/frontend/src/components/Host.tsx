@@ -1,12 +1,10 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useMemo, useRef, useState } from "react";
 import "./Landing.css";
 import "./Host.css";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 type CopyState = "idle" | "copied" | "error";
-type SessionMode = "normal" | "focus" | "casual";
-type SessionSize = "small" | "medium" | "large";
-type SessionColor = "blue" | "green" | "purple" | "orange" | "red" | "slate";
+type SessionMode = "normal" | "colorShift" | "sizePulse";
 type SubmitState = "idle" | "loading" | "success" | "error";
 
 const generateSessionCode = (length: number = 6): string => {
@@ -26,8 +24,6 @@ const Host = () => {
   const [sessionCode, setSessionCode] = useState<string>("");
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const [mode, setMode] = useState<SessionMode>("normal");
-  const [size, setSize] = useState<SessionSize>("medium");
-  const [color, setColor] = useState<SessionColor>("slate");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [titleTouched, setTitleTouched] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -84,8 +80,8 @@ const Host = () => {
     setSessionCode(code);
       setSubmitState("success");
       
-      // TODO: Send settings (mode, size, color) to backend when creating session
-      console.log("Session settings:", { mode, size, color, title, description });
+      // TODO: Send settings (mode) to backend when creating session
+      console.log("Session settings:", { mode, title, description });
 
       // Auto-scroll to session code after animation
       setTimeout(() => {
@@ -158,14 +154,10 @@ const Host = () => {
     }
   };
 
-  const handleColorKeyDown = (
-    e: React.KeyboardEvent<HTMLLabelElement>,
-    value: SessionColor
-  ) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      setColor(value);
-    }
+  const modeDescriptions: Record<SessionMode, string> = {
+    normal: "Elements remain static during the session.",
+    colorShift: "Elements gradually shift hue as time progresses.",
+    sizePulse: "Elements slowly grow or shrink over time."
   };
 
   return (
@@ -232,6 +224,9 @@ const Host = () => {
 
             <div className="session-settings">
               <h3 className="settings-title">Session Settings</h3>
+              <p className="settings-intro">
+                This controls how forum elements behave as time progresses during a session.
+              </p>
               
               <div className="settings-group">
                 <label className="settings-label">Mode</label>
@@ -251,107 +246,28 @@ const Host = () => {
                     <input
                       type="radio"
                       name="mode"
-                      value="focus"
-                      checked={mode === "focus"}
+                      value="colorShift"
+                      checked={mode === "colorShift"}
                       onChange={(e) => setMode(e.target.value as SessionMode)}
-                      aria-label="Focus mode"
+                      aria-label="Color shift mode"
                     />
-                    <span>Focus</span>
+                    <span>Color Shift</span>
                   </label>
                   <label className="radio-option">
                     <input
                       type="radio"
                       name="mode"
-                      value="casual"
-                      checked={mode === "casual"}
+                      value="sizePulse"
+                      checked={mode === "sizePulse"}
                       onChange={(e) => setMode(e.target.value as SessionMode)}
-                      aria-label="Casual mode"
+                      aria-label="Size pulse mode"
                     />
-                    <span>Casual</span>
+                    <span>Size Pulse</span>
                   </label>
                 </div>
-              </div>
-
-              <div className="settings-group">
-                <label className="settings-label">Size</label>
-                <div className="radio-group" role="radiogroup" aria-label="Session size">
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="size"
-                      value="small"
-                      checked={size === "small"}
-                      onChange={(e) => setSize(e.target.value as SessionSize)}
-                      aria-label="Small size"
-                    />
-                    <span>Small</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="size"
-                      value="medium"
-                      checked={size === "medium"}
-                      onChange={(e) => setSize(e.target.value as SessionSize)}
-                      aria-label="Medium size"
-                    />
-                    <span>Medium</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="size"
-                      value="large"
-                      checked={size === "large"}
-                      onChange={(e) => setSize(e.target.value as SessionSize)}
-                      aria-label="Large size"
-                    />
-                    <span>Large</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="settings-group">
-                <label className="settings-label">Color Theme</label>
-                <div className="color-options" role="radiogroup" aria-label="Color theme">
-                  {(["blue", "green", "purple", "orange", "red", "slate"] as SessionColor[]).map((colorValue) => (
-                    <label
-                      key={colorValue}
-                      className="color-option"
-                      onKeyDown={(e) => handleColorKeyDown(e, colorValue)}
-                      tabIndex={0}
-                    >
-                      <input
-                        type="radio"
-                        name="color"
-                        value={colorValue}
-                        checked={color === colorValue}
-                        onChange={(e) => setColor(e.target.value as SessionColor)}
-                        aria-label={`${colorValue.charAt(0).toUpperCase() + colorValue.slice(1)} color theme`}
-                      />
-                      <span className={`color-swatch ${colorValue}`} aria-hidden="true">
-                        {color === colorValue && (
-                          <svg
-                            className="color-checkmark"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 18 18"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M3 9L7 13L15 5"
-                              stroke="white"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <p className="mode-description">
+                  {modeDescriptions[mode]}
+                </p>
               </div>
             </div>
 
