@@ -89,6 +89,7 @@
     background: linear-gradient(180deg, var(--accent), var(--accent-strong));
     color: #ffffff;
     font-weight: 700;
+    font-size: 16px;
 }
 
 /* small responsive tweak */
@@ -107,6 +108,8 @@
     justify-content: center;
     z-index: 100;
     padding: 20px;
+    animation: fadeIn 0.6s ease-out 0.0s both;
+    transition: fadeOut 0.3s ease-in 0.0s both;
 }
 .modal {
     width: 100%;
@@ -116,6 +119,7 @@
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+    animation: fadeInUp 0.6s ease-out 0.0s both;
 }
 .modal h2 { margin: 0 0 12px; }
 .question-input {
@@ -160,6 +164,8 @@
     justify-content: center;
     box-shadow: 0 8px 20px rgba(0,0,0,0.18);
     cursor: pointer;
+    animation: popIn 0.6s ease both;
+
 }
 .circle.small {
     width: 28px;
@@ -171,5 +177,12 @@
     background: linear-gradient(180deg, var(--accent), var(--accent-strong));
     color: #ffffff;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 25px;
 }
+
+@keyframes fadeInDown { from {opacity:0; transform: translateY(-22px);} to {opacity:1; transform:none;} }
+@keyframes fadeOutDown { from {opacity:1; transform:none;} to {opacity:0; transform: translateY(-22px);} }
+@keyframes fadeInUp   { from {opacity:0; transform: translateY(22px);}  to {opacity:1; transform:none;} }
+@keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; }}
+@keyframes fadeOut  { from { opacity: 1; } to { opacity: 0; }}
+@keyframes popIn    {from {transform: scale(0.5); } 50% {transform: scale(1.5); }to{transform: scale(1);}}
