@@ -106,10 +106,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 0;
     padding: 20px;
-    animation: fadeIn 0.6s ease-out 0.0s both;
-    transition: fadeOut 0.3s ease-in 0.0s both;
+    opacity: 0;
+    transition: opacity 0.3s ease, z-index .3s ease;
+}
+.modal-overlay.visible {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    z-index: 100;
 }
 .modal {
     width: 100%;
@@ -120,7 +125,12 @@
     padding: 20px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.28);
     animation: fadeInUp 0.6s ease-out 0.0s both;
+    opacity: 0;
 }
+.modal.visible {
+    opacity: 1;
+    transition: fadeOut 0.3s ease-in 0.0s both;
+ }
 .modal h2 { margin: 0 0 12px; }
 .question-input {
     width: 100%;

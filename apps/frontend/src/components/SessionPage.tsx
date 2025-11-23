@@ -147,8 +147,6 @@ const SessionPage = () => {
                     </button>
                 ))}
             </div>
-
-            {showAskModal && (
                 <div
                     className= {`modal-overlay ${showAskModal ? "visible" : ""}`}
                     role="dialog"
@@ -177,7 +175,7 @@ const SessionPage = () => {
                         </div>
                     </div>
                 </div>
-            )}
+        
         </div>
     );
 }
