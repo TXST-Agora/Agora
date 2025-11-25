@@ -98,7 +98,7 @@
     .fab-main { width: 56px; height: 56px; font-size: 24px; }
 }
 
-/* Modal (Ask dialog) */
+/* Modal */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -132,7 +132,7 @@
     transition: fadeOut 0.3s ease-in 0.0s both;
  }
 .modal h2 { margin: 0 0 12px; }
-.question-input {
+.input {
     width: 100%;
     border-radius: 8px;
     border: 1px solid rgba(0,0,0,0.12);
