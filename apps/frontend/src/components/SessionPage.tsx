@@ -4,20 +4,22 @@ const SessionPage = () => {
     const [open, setOpen] = useState(false);
     const [visible, setVisible] = useState(true)
     const [showAskModal, setShowAskModal] = useState(false);
-    const [question, setQuestion] = useState("");
+    const [showCommentModal, setShowCommentModal] = useState(false);
+    const [input, setInput] = useState("");
+
 
     const [submittedElements, setSubmittedElements] = useState<Array<{ id: number; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    const submitQuestion = () => {
-        const trimmed = question.trim();
+    const submitElement = (type: string) => {
+        const trimmed = input.trim();
         if (!trimmed) {
             // simple client-side validation
-            alert("Please type a question before submitting.");
+            alert("Please type a response before submitting.");
             return;
         }
         // Replace this with real submit logic later
-        alert(`Question submitted: ${trimmed}`);
+        alert(`${type} submitted: ${trimmed}`);
 
         /* generate session element with attributes to be used in backend:
             	- icon type
@@ -72,14 +74,16 @@ const SessionPage = () => {
         // store position (even if overlapping after attempts)
         setSubmittedElements((s) => [...s, { id, type: "question", content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
 
-        setQuestion("");
-        setShowAskModal(false);
+        setInput("");
+        if(type == "question") setShowAskModal(false);
+        if(type == "comment" ) setShowCommentModal(false)
         setVisible(false);
     };
 
-    const cancelAsk = () => {
-        setQuestion("");
+    const cancelInput = () => {
+        setInput("");
         setShowAskModal(false);
+        setShowCommentModal(false);
     };
 
     return (
@@ -115,7 +119,7 @@ const SessionPage = () => {
                         className="fab-option"
                         onClick={() => {
                             setOpen(false);
-                            alert("Comment clicked");
+                            setShowCommentModal(true);
                         }}
                     >
                         <span className="label">Comment</span>
@@ -153,28 +157,60 @@ const SessionPage = () => {
                     aria-modal="true"
                     aria-label="Ask a question dialog"
                     onKeyDown={(e) => {
-                        if (e.key === 'Escape') cancelAsk();
+                        if (e.key === 'Escape') cancelInput();
                     }}
                 >
-                    <div className={`modal ${showAskModal ? "visible": ""}`}>
+                    <div className={`modal ${showAskModal ? "visible": ""} `}>
                         <h2>Ask a Question</h2>
                         <label htmlFor="question-input" className="visually-hidden">Type your question</label>
                         <textarea
                             id="question-input"
-                            className="question-input"
-                            value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
+                            className="input"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
                             placeholder="Type your question here..."
                             rows={6}
 
                         />
 
                         <div className="modal-buttons">
-                            <button className="btn btn-primary" onClick={submitQuestion}>Submit</button>
-                            <button className="btn btn-secondary" onClick={cancelAsk}>Cancel</button>
+                            <button className="btn btn-primary" onClick={() => {submitElement("question")}}>Submit</button>
+                            <button className="btn btn-secondary" onClick={cancelInput}>Cancel</button>
                         </div>
                     </div>
+                </div>    
+
+                <div
+                    className= {`modal-overlay ${showCommentModal ? "visible" : ""}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Leave a comment dialog"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Escape') cancelInput();
+                    }}
+                >
+
+                    <div className={`modal ${showCommentModal ? "visible": ""}`}>
+                        <h2>Leave a Comment</h2>
+                        <label htmlFor="comment-input" className="visually-hidden">Type your comment</label>
+                        <textarea
+                            id="comment-input"
+                            className="input"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Type your comment here..."
+                            rows={6}
+
+                        />
+
+                        <div className="modal-buttons">
+                            <button className="btn btn-primary" onClick={() => {submitElement("comment")}}>Submit</button>
+                            <button className="btn btn-secondary" onClick={cancelInput}>Cancel</button>
+                        </div>
+                    </div>
+
                 </div>
+                
         
         </div>
     );
