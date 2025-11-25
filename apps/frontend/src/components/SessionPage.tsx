@@ -72,7 +72,7 @@ const SessionPage = () => {
         }
 
         // store position (even if overlapping after attempts)
-        setSubmittedElements((s) => [...s, { id, type: "question", content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
+        setSubmittedElements((s) => [...s, { id, type: type, content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
 
         setInput("");
         if(type == "question") setShowAskModal(false);
@@ -147,7 +147,7 @@ const SessionPage = () => {
                         aria-label={`submitted-${f.type}-${idx}`}
                         style={{ left: f.x != null ? `${f.x}px` : undefined, top: f.y != null ? `${f.y}px` : undefined }}
                     >
-                        <span className="circle small">?</span>
+                        {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
                     </button>
                 ))}
             </div>
