@@ -18,8 +18,6 @@ const SessionPage = () => {
             alert("Please type a response before submitting.");
             return;
         }
-        // Replace this with real submit logic later
-        alert(`${type} submitted: ${trimmed}`);
 
         /* generate session element with attributes to be used in backend:
             	- icon type
@@ -89,7 +87,7 @@ const SessionPage = () => {
     return (
         <div className="session-page" ref={containerRef}>
 
-            {visible && (<main className="content">
+            {visible && (<main aria-label="initial text" className="content">
                 <h1>Welcome to the Session!</h1>
                 <p>It's pretty quiet in here...press the "+" button in the bottom right to get started!</p>
             </main>)}
