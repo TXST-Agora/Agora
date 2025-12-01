@@ -141,9 +141,10 @@ const SessionPage = () => {
                     <button
                         key={f.id}
                         className="fab-element"
-                        title={`${f.type}: ${f.content}`}
+                        title={`${f.content}`}
                         aria-label={`submitted-${f.type}-${idx}`}
                         style={{ left: f.x != null ? `${f.x}px` : undefined, top: f.y != null ? `${f.y}px` : undefined }}
+                        id={`${f.type}-${idx}`}
                     >
                         {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
                     </button>
