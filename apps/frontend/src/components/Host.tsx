@@ -15,16 +15,43 @@ type CopyState = "idle" | "copied" | "error";
 type SessionMode = "normal" | "colorShift" | "sizePulse";
 type SubmitState = "idle" | "loading" | "success" | "error";
 
-const generateSessionCode = (length: number = 6): string => {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < length; i += 1) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return code;
-};
-
 const MIN_TITLE_LENGTH = 3;
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+/**
+ * Calls the backend API to generate a unique session code and save session data
+ * @param title - The session title
+ * @param description - The session description (optional)
+ * @param sessionType - The session type/mode
+ * @returns The generated session code
+ * @throws Error if the API call fails
+ */
+const generateSessionCode = async (
+  title: string,
+  description: string,
+  sessionType: string
+): Promise<string> => {
+  const response = await fetch(`${API_BASE_URL}/api/v1/session/code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      title,
+      description,
+      sessionType,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Failed to generate session code' }));
+    throw new Error(errorData.message || 'Failed to generate session code');
+  }
+
+  const data = await response.json();
+  return data.code;
+};
 
 type ModePreviewProps = {
   mode: SessionMode;
@@ -100,15 +127,13 @@ const Host = () => {
     setSubmitState("loading");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const code = generateSessionCode(6);
+      const code = await generateSessionCode(title.trim(), description.trim(), mode);
       setSessionCode(code);
       setSubmitState("success");
       setShowToast(true);
       setCodeHighlight(true);
 
-      console.log("Session settings:", { mode, title, description });
+      console.log("Session created:", { code, mode, title, description });
 
       setTimeout(() => {
         sessionCodeRef.current?.scrollIntoView({
@@ -130,7 +155,7 @@ const Host = () => {
       }, 600);
     } catch (error) {
       setSubmitState("error");
-      setErrorMessage("Could not create session. Please try again.");
+      setErrorMessage(error instanceof Error ? error.message : "Could not create session. Please try again.");
       setTimeout(() => {
         setErrorMessage("");
         setSubmitState("idle");
@@ -185,9 +210,7 @@ const Host = () => {
     setSubmitState("loading");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const code = generateSessionCode(6);
+      const code = await generateSessionCode(title.trim(), description.trim(), mode);
       setSessionCode(code);
       setSubmitState("success");
       setShowToast(true);
@@ -213,7 +236,7 @@ const Host = () => {
       }, 600);
     } catch (error) {
       setSubmitState("error");
-      setErrorMessage("Could not create session. Please try again.");
+      setErrorMessage(error instanceof Error ? error.message : "Could not create session. Please try again.");
       setTimeout(() => {
         setErrorMessage("");
         setSubmitState("idle");
