@@ -23,10 +23,21 @@ export const generateSessionCode = (length: number = 6): string => {
 
 /**
  * Creates a new session with a generated code and saves it to the database
- * @param length - The length of the code to generate (default: 6)
+ * @param options - Session creation options
+ * @param options.length - The length of the code to generate (default: 6)
+ * @param options.title - The session title
+ * @param options.description - The session description (optional)
+ * @param options.sessionType - The session type/mode (e.g., 'normal', 'colorShift', 'sizePulse')
  * @returns The created session document
  */
-export const createSession = async (length: number = 6) => {
+export const createSession = async (options: {
+  length?: number;
+  title: string;
+  description?: string;
+  sessionType: string;
+}) => {
+  const { length = 6, title, description, sessionType } = options;
+
   // Generate a unique code
   let code: string = '';
   let isUnique = false;
@@ -50,6 +61,9 @@ export const createSession = async (length: number = 6) => {
   // Create and save the session
   const session = new Session({
     sessionID: code,
+    title,
+    description: description || '',
+    sessionType,
     startTime: new Date(),
   });
 

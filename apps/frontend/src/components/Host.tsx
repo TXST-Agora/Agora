@@ -20,16 +20,28 @@ const MIN_TITLE_LENGTH = 3;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 /**
- * Calls the backend API to generate a unique session code
+ * Calls the backend API to generate a unique session code and save session data
+ * @param title - The session title
+ * @param description - The session description (optional)
+ * @param sessionType - The session type/mode
  * @returns The generated session code
  * @throws Error if the API call fails
  */
-const generateSessionCode = async (): Promise<string> => {
+const generateSessionCode = async (
+  title: string,
+  description: string,
+  sessionType: string
+): Promise<string> => {
   const response = await fetch(`${API_BASE_URL}/api/v1/session/code`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      title,
+      description,
+      sessionType,
+    }),
   });
 
   if (!response.ok) {
@@ -115,13 +127,13 @@ const Host = () => {
     setSubmitState("loading");
 
     try {
-      const code = await generateSessionCode();
+      const code = await generateSessionCode(title.trim(), description.trim(), mode);
       setSessionCode(code);
       setSubmitState("success");
       setShowToast(true);
       setCodeHighlight(true);
 
-      console.log("Session settings:", { mode, title, description });
+      console.log("Session created:", { code, mode, title, description });
 
       setTimeout(() => {
         sessionCodeRef.current?.scrollIntoView({
@@ -198,7 +210,7 @@ const Host = () => {
     setSubmitState("loading");
 
     try {
-      const code = await generateSessionCode();
+      const code = await generateSessionCode(title.trim(), description.trim(), mode);
       setSessionCode(code);
       setSubmitState("success");
       setShowToast(true);
