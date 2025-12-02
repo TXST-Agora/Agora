@@ -52,7 +52,10 @@ async function databaseConnect(){
     }
 }
 
-databaseConnect();
+// Only connect if not in test environment
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+    databaseConnect();
+}
 
 //let db = client.db("questions");
 //export default db;
