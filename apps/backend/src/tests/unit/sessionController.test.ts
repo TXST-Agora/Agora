@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { type Request, type Response } from 'express';
-import { createSessionCode } from '../controllers/sessionController.js';
-import * as sessionService from '../services/sessionService.js';
+import { createSessionCode } from '../../controllers/sessionController.js';
+import * as sessionService from '../../services/sessionService.js';
 
 // Mock the session service
-vi.mock('../services/sessionService.js', () => ({
+vi.mock('../../services/sessionService.js', () => ({
   createSession: vi.fn(),
 }));
 

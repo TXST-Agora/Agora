@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateSessionCode, createSession } from '../services/sessionService.js';
+import { generateSessionCode, createSession } from '../../services/sessionService.js';
 
 // Mock the database connection and schema
-vi.mock('../../db/connection.js', () => ({}));
+vi.mock('../../../db/connection.js', () => ({}));
 
 // Use vi.hoisted() to create mocks that can be used in both the mock factory and tests
 const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
@@ -36,7 +36,7 @@ const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
   return { mockFindOne, mockSave, MockSession };
 });
 
-vi.mock('../../db/session-schema.js', () => ({
+vi.mock('../../../db/session-schema.js', () => ({
   default: MockSession,
 }));
 
