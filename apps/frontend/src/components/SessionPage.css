@@ -1,8 +1,9 @@
 .session-page {
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    position: relative; /* container for absolutely positioned generated fabs */
 }
 
 .content {
@@ -21,7 +22,7 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 12px;
-    z-index: 50;
+    z-index: 100;
 }
 
 .fab-main {
@@ -88,6 +89,7 @@
     background: linear-gradient(180deg, var(--accent), var(--accent-strong));
     color: #ffffff;
     font-weight: 700;
+    font-size: 16px;
 }
 
 /* small responsive tweak */
@@ -95,3 +97,103 @@
     .fab-container { right: 16px; bottom: 16px; }
     .fab-main { width: 56px; height: 56px; font-size: 24px; }
 }
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: -1;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease, z-index 0.0s;
+    transition-delay: 0.0s, 0.1s;
+    
+}
+.modal-overlay.visible {
+    opacity: 1;
+    z-index: 100;
+    transition-delay: 0.1s, 0.0s;
+    
+}
+.modal {
+    width: 100%;
+    max-width: 640px;
+    background: var(--card, #fff);
+    color: var(--text, #111);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+    transition: transform 0.3s ease;
+}
+.modal.visible {
+    transform: translateY(-22px);
+ }
+.modal h2 { margin: 0 0 12px; }
+.input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.12);
+    resize: vertical;
+    font-size: 14px;
+    margin-bottom: 12px;
+    min-height: 80px;
+    max-height: 500px;
+}
+.modal-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.btn { padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid rgba(0,0,0,0.08); }
+
+.visually-hidden { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+/* generated fabs (created when a question is submitted) */
+.generated-fabs {
+    position: absolute; /* positioned inside .session-page */
+    inset: 0;
+    z-index: 60;
+    pointer-events: none; /* container ignores pointer events; inner fabs opt in */
+}
+.generated-fabs .fab-element {
+    position: absolute; /* left/top provided inline by React */
+    pointer-events: auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(180deg,var(--accent), var(--accent-strong));
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    cursor: pointer;
+    animation: popIn 0.6s ease both;
+
+}
+.circle.small {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 25px;
+}
+
+@keyframes fadeInDown { from {opacity:0; transform: translateY(-22px);} to {opacity:1; transform:none;} }
+@keyframes fadeOutDown { from {opacity:1; transform:none;} to {opacity:0; transform: translateY(-22px);} }
+@keyframes fadeInUp   { from {opacity:0; transform: translateY(22px);}  to {opacity:1; transform:none;} }
+@keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; }}
+@keyframes fadeOut  { from { opacity: 1; } to { opacity: 0; }}
+@keyframes popIn    {from {transform: scale(0.5); } 50% {transform: scale(1.5); }to{transform: scale(1);}}
