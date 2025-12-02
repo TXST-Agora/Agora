@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import Host from "../components/Host";
 import { MemoryRouter } from "react-router-dom";
 
 describe("Host Page", () => {
   let clipboardWriteTextMock: ReturnType<typeof vi.fn>;
+  let fetchMock: ReturnType<typeof vi.fn>;
 
   // Mock navigator.clipboard once before all tests
   beforeAll(() => {
@@ -23,11 +24,16 @@ describe("Host Page", () => {
     vi.useFakeTimers();
     // Reset the mock before each test
     clipboardWriteTextMock.mockReset();
+    
+    // Mock fetch API
+    fetchMock = vi.fn();
+    (globalThis as any).fetch = fetchMock;
   });
 
   afterEach(() => {
     vi.clearAllTimers();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("renders title, description field, and create button", () => {
@@ -77,6 +83,15 @@ describe("Host Page", () => {
   });
 
   it("submits successfully and shows session code + toast", async () => {
+    vi.useRealTimers();
+    const mockSessionCode = "ABC123";
+    
+    // Mock successful API response
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ code: mockSessionCode }),
+    });
+
     render(
       <MemoryRouter>
         <Host />
@@ -103,19 +118,46 @@ describe("Host Page", () => {
       submitBtn.click();
     });
 
-    // Advance timers to complete the async operation (1500ms setTimeout)
-    await act(async () => {
-      vi.runAllTimers();
+    // Wait for API call to complete
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/session/code'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: 'My Forum',
+            description: '',
+            sessionType: 'normal',
+          }),
+        })
+      );
     });
 
     // Wait for the session code to appear
-    expect(screen.getByText(/session code/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/session code/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // Verify the session code is displayed
+    expect(screen.getByText(mockSessionCode)).toBeInTheDocument();
 
     // Check for toast (should still be visible)
     expect(screen.getByText(/your forum is ready/i)).toBeInTheDocument();
   });
 
   it("copy button works", async () => {
+    vi.useRealTimers();
+    const mockSessionCode = "XYZ789";
+    
+    // Mock successful API response
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ code: mockSessionCode }),
+    });
+
     render(
       <MemoryRouter>
         <Host />
@@ -141,20 +183,25 @@ describe("Host Page", () => {
       submitBtn.click();
     });
 
-    await act(async () => {
-      vi.runAllTimers();
-    });
+    // Wait for API call and session code to appear
+    await waitFor(() => {
+      expect(screen.getByText(mockSessionCode)).toBeInTheDocument();
+    }, { timeout: 3000 });
 
     // The button's aria-label includes the session code, so match on "Copy session code"
-    const copyBtn = screen.getByRole("button", { name: /copy session code/i });
+    const copyBtn = screen.getByRole("button", { name: new RegExp(`copy session code`, 'i') });
     
     // Click the copy button
-    copyBtn.click();
+    await act(async () => {
+      copyBtn.click();
+    });
 
-    // The handleCopy is async but navigator.clipboard.writeText should be called immediately
-    expect(clipboardWriteTextMock).toHaveBeenCalledOnce();
-    // Also verify it was called with a session code (6 character string)
-    expect(clipboardWriteTextMock).toHaveBeenCalledWith(expect.stringMatching(/^[A-Z2-9]{6}$/));
+    // The handleCopy is async but navigator.clipboard.writeText should be called
+    await waitFor(() => {
+      expect(clipboardWriteTextMock).toHaveBeenCalledOnce();
+    });
+    // Also verify it was called with the session code from the API
+    expect(clipboardWriteTextMock).toHaveBeenCalledWith(mockSessionCode);
   });
 
   it("updates mode description when selecting modes", async () => {
@@ -179,5 +226,135 @@ describe("Host Page", () => {
     });
     
     expect(screen.getByText(/grow and shrink/i)).toBeInTheDocument();
+  });
+
+  it("sends correct sessionType to API when mode is selected", async () => {
+    vi.useRealTimers();
+    const mockSessionCode = "MODE123";
+    
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ code: mockSessionCode }),
+    });
+
+    render(
+      <MemoryRouter>
+        <Host />
+      </MemoryRouter>
+    );
+
+    const titleInput = screen.getByLabelText(/forum title/i) as HTMLInputElement;
+    const colorShiftRadio = screen.getByDisplayValue("colorShift") as HTMLInputElement;
+
+    // Set title and select colorShift mode
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      
+      nativeInputValueSetter?.call(titleInput, 'Test Forum');
+      titleInput.dispatchEvent(new Event('change', { bubbles: true }));
+      colorShiftRadio.click();
+    });
+
+    const submitBtn = screen.getByRole("button", { name: /create session/i });
+    
+    await act(async () => {
+      submitBtn.click();
+    });
+
+    // Verify API was called with correct sessionType
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/session/code'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            title: 'Test Forum',
+            description: '',
+            sessionType: 'colorShift',
+          }),
+        })
+      );
+    }, { timeout: 3000 });
+  });
+
+  it("handles API error and shows error message", async () => {
+    vi.useRealTimers();
+    const errorMessage = "Failed to generate session code";
+    
+    // Mock failed API response
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ message: errorMessage }),
+    });
+
+    render(
+      <MemoryRouter>
+        <Host />
+      </MemoryRouter>
+    );
+
+    const titleInput = screen.getByLabelText(/forum title/i) as HTMLInputElement;
+    
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      
+      nativeInputValueSetter?.call(titleInput, 'Test Forum');
+      titleInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const submitBtn = screen.getByRole("button", { name: /create session/i });
+    
+    await act(async () => {
+      submitBtn.click();
+    });
+
+    // Wait for error message to appear
+    await waitFor(() => {
+      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // Verify retry button is shown
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+  });
+
+  it("handles network error gracefully", async () => {
+    vi.useRealTimers();
+    // Mock network error
+    fetchMock.mockRejectedValueOnce(new Error("Network error"));
+
+    render(
+      <MemoryRouter>
+        <Host />
+      </MemoryRouter>
+    );
+
+    const titleInput = screen.getByLabelText(/forum title/i) as HTMLInputElement;
+    
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      
+      nativeInputValueSetter?.call(titleInput, 'Test Forum');
+      titleInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const submitBtn = screen.getByRole("button", { name: /create session/i });
+    
+    await act(async () => {
+      submitBtn.click();
+    });
+
+    // Wait for error message to appear
+    await waitFor(() => {
+      expect(screen.getByText(/network error/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 });
