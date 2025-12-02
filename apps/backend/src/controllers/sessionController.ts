@@ -1,5 +1,9 @@
 import { type Request, type Response } from 'express';
+import { randomUUID } from 'crypto';
 import { createSession, createSessionWithMode } from '../services/sessionService.js';
+import '../../db/connection.js';
+// @ts-ignore - JS file without type definitions
+import Session from '../../db/session-schema.js';
 
 /**
  * Controller for session-related HTTP endpoints
@@ -160,6 +164,116 @@ export const createSessionEndpoint = async (req: Request, res: Response): Promis
   } catch (error) {
     res.status(500).json({ 
       message: 'Failed to create session', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+};
+
+/**
+ * GET /api/session/:sessionCode
+ * Retrieves a session by sessionCode
+ */
+export const getSession = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionCode } = req.params;
+
+    const session = await Session.findOne({ sessionCode });
+    if (!session) {
+      res.status(404).json({ 
+        message: 'Session not found' 
+      });
+      return;
+    }
+
+    res.status(200).json({
+      sessionCode: session.sessionCode,
+      title: session.title,
+      description: session.description,
+      mode: session.mode,
+      hostStartTime: session.hostStartTime,
+      actions: session.actions || [],
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to retrieve session', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+};
+
+/**
+ * POST /api/session/:sessionCode/action
+ * Adds a new action (question/comment) to a session
+ * Request body should contain: { type: string, content: string }
+ */
+export const addSessionAction = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionCode } = req.params;
+    const { type, content } = req.body;
+
+    // Validate required fields
+    if (!type || typeof type !== 'string') {
+      res.status(400).json({ 
+        message: 'type is required and must be a string' 
+      });
+      return;
+    }
+
+    if (!content || typeof content !== 'string') {
+      res.status(400).json({ 
+        message: 'content is required and must be a string' 
+      });
+      return;
+    }
+
+    const trimmedContent = content.trim();
+    if (trimmedContent.length === 0) {
+      res.status(400).json({ 
+        message: 'content cannot be empty' 
+      });
+      return;
+    }
+
+    // Validate action type
+    const validActionTypes = ['question', 'comment'] as const;
+    if (!validActionTypes.includes(type as typeof validActionTypes[number])) {
+      res.status(400).json({ 
+        message: `type must be one of: ${validActionTypes.join(', ')}` 
+      });
+      return;
+    }
+
+    // Find the session
+    const session = await Session.findOne({ sessionCode });
+    if (!session) {
+      res.status(404).json({ 
+        message: 'Session not found' 
+      });
+      return;
+    }
+
+    // Create new action
+    const newAction = {
+      id: randomUUID(),
+      type,
+      content: trimmedContent,
+      start_time: new Date(),
+    };
+
+    // Add action to session
+    if (!session.actions) {
+      session.actions = [];
+    }
+    session.actions.push(newAction);
+    await session.save();
+
+    res.status(201).json({ 
+      message: 'Action added', 
+      action: newAction 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to add action', 
       error: error instanceof Error ? error.message : String(error) 
     });
   }
