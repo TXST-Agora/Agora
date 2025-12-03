@@ -71,3 +71,57 @@ export const createSession = async (options: {
   return session;
 };
 
+
+//Helper function to get the time passed since the start time
+function getTimePassed(startTime: Date | string | undefined | null): number | null {
+  if (!startTime) return null;
+
+  const startDate = startTime instanceof Date ? startTime : new Date(startTime);
+  if (isNaN(startDate.getTime())) return null;
+
+  const now = new Date();
+  return now.getTime() - startDate.getTime(); // ms
+}
+
+//Helper function to format the time passed since the start time to be human readable
+function formatTimePassed(ms: number | null): string | null {
+  if (ms == null) return null;
+
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours   = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  } else {
+    return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+  }
+}
+
+// Fetch sessions and attach time fields, based on your MongoDB structure
+export const getSessionsWithTime = async () => {
+  const sessions = await Session.find({});
+
+  return sessions.map((session: any) => {
+    const sessionObj = session.toObject();
+
+    const hostMs  = getTimePassed(sessionObj.hostStartTime);
+    sessionObj.hostTimePassedMs  = hostMs;
+    sessionObj.hostTimePassedStr = formatTimePassed(hostMs);
+
+    if (Array.isArray(sessionObj.actions)) {
+      sessionObj.actions = sessionObj.actions.map((action: any) => {
+        const actionMs = getTimePassed(action.start_time);
+        return {
+          ...action,
+          timePassedMs: actionMs,
+          timePassedStr: formatTimePassed(actionMs),
+        };
+      });
+    }
+
+    return sessionObj;
+  });
+};

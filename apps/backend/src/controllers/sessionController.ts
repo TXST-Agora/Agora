@@ -1,5 +1,6 @@
 import { type Request, type Response } from 'express';
-import { createSession } from '../services/sessionService.js';
+//import { createSession } from '../services/sessionService.js';
+import { createSession, getSessionsWithTime } from '../services/sessionService.js';
 
 /**
  * Controller for session-related HTTP endpoints
@@ -87,3 +88,14 @@ export const createSessionCode = async (req: Request, res: Response): Promise<vo
   }
 };
 
+export const listSessionsWithTime = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const sessions = await getSessionsWithTime();
+    res.status(200).json(sessions);
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to fetch sessions',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};

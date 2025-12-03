@@ -17,6 +17,7 @@ function App() {
           <Route path="/join" element={<JoinPage />} />
           <Route path="/host" element={<Host />} />
           <Route path="/session" element={<SessionPage />} />
+          <Route path="/forum/:code" element={<SessionPage />} /> 
         </Routes>
       </div>
     </BrowserRouter>

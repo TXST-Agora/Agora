@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { createSessionCode } from '../controllers/sessionController.js';
+//import { createSessionCode} from '../controllers/sessionController.js';
+import { createSessionCode, listSessionsWithTime } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -8,6 +9,8 @@ const router = Router();
  * Generates a new randomized alphanumeric session code
  */
 router.post('/code', createSessionCode);
+
+router.get('/', listSessionsWithTime);
 
 export default router;
 
