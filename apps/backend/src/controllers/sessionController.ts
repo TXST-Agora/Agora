@@ -209,7 +209,7 @@ export const getSession = async (req: Request, res: Response): Promise<void> => 
 export const addSessionAction = async (req: Request, res: Response): Promise<void> => {
   try {
     const { sessionCode } = req.params;
-    const { type, content } = req.body;
+    const { type, content, actionID } = req.body;
 
     // Validate required fields
     if (!type || typeof type !== 'string') {
@@ -243,6 +243,22 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    // Validate actionID
+    if (actionID === undefined || actionID === null) {
+      res.status(400).json({ 
+        message: 'actionID is required' 
+      });
+      return;
+    }
+
+    const numericActionID = typeof actionID === 'string' ? parseInt(actionID, 10) : Number(actionID);
+    if (isNaN(numericActionID) || numericActionID < 1 || !Number.isInteger(numericActionID)) {
+      res.status(400).json({ 
+        message: 'actionID must be a positive integer' 
+      });
+      return;
+    }
+
     // Find the session
     const session = await Session.findOne({ sessionCode });
     if (!session) {
@@ -252,9 +268,10 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Create new action
+    // Create new action with actionID from frontend
     const newAction = {
       id: randomUUID(),
+      actionID: numericActionID,
       type,
       content: trimmedContent,
       start_time: new Date(),

@@ -305,12 +305,14 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: 'What is the answer?',
+          actionID: 1,
         })
         .expect(201);
 
       expect(response.body).toHaveProperty('message', 'Action added');
       expect(response.body).toHaveProperty('action');
       expect(response.body.action).toHaveProperty('id');
+      expect(response.body.action).toHaveProperty('actionID', 1);
       expect(response.body.action).toHaveProperty('type', 'question');
       expect(response.body.action).toHaveProperty('content', 'What is the answer?');
       expect(response.body.action).toHaveProperty('start_time');
@@ -324,11 +326,13 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'comment',
           content: 'This is a great question!',
+          actionID: 1,
         })
         .expect(201);
 
       expect(response.body.action.type).toBe('comment');
       expect(response.body.action.content).toBe('This is a great question!');
+      expect(response.body.action.actionID).toBe(1);
     });
 
     it('should reject request with missing type (400)', async () => {
@@ -353,12 +357,64 @@ describe('Session API Endpoints', () => {
       expect(response.body).toHaveProperty('message', 'content is required and must be a string');
     });
 
+    it('should reject request with missing actionID (400)', async () => {
+      const response = await request(app)
+        .post(`/api/session/${testSessionCode}/action`)
+        .send({
+          type: 'question',
+          content: 'Some content',
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message', 'actionID is required');
+    });
+
+    it('should reject request with invalid actionID (400)', async () => {
+      const response = await request(app)
+        .post(`/api/session/${testSessionCode}/action`)
+        .send({
+          type: 'question',
+          content: 'Some content',
+          actionID: 'not-a-number',
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message', 'actionID must be a positive integer');
+    });
+
+    it('should reject request with negative actionID (400)', async () => {
+      const response = await request(app)
+        .post(`/api/session/${testSessionCode}/action`)
+        .send({
+          type: 'question',
+          content: 'Some content',
+          actionID: -1,
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message', 'actionID must be a positive integer');
+    });
+
+    it('should reject request with zero actionID (400)', async () => {
+      const response = await request(app)
+        .post(`/api/session/${testSessionCode}/action`)
+        .send({
+          type: 'question',
+          content: 'Some content',
+          actionID: 0,
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message', 'actionID must be a positive integer');
+    });
+
     it('should reject request with empty content string (400)', async () => {
       const response = await request(app)
         .post(`/api/session/${testSessionCode}/action`)
         .send({
           type: 'question',
           content: '',
+          actionID: 1,
         })
         .expect(400);
 
@@ -372,6 +428,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: '   \n\t  ',
+          actionID: 1,
         })
         .expect(400);
 
@@ -384,6 +441,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'invalidType',
           content: 'Some content',
+          actionID: 1,
         })
         .expect(400);
 
@@ -399,6 +457,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: 'Some content',
+          actionID: 1,
         })
         .expect(404);
 
@@ -413,6 +472,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: actionContent,
+          actionID: 1,
         })
         .expect(201);
 
@@ -425,6 +485,7 @@ describe('Session API Endpoints', () => {
       expect(session?.actions[0]).toHaveProperty('type', 'question');
       expect(session?.actions[0]).toHaveProperty('content', actionContent);
       expect(session?.actions[0]).toHaveProperty('id');
+      expect(session?.actions[0]).toHaveProperty('actionID', 1);
       expect(session?.actions[0]).toHaveProperty('start_time');
     });
 
@@ -435,6 +496,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: 'First question',
+          actionID: 1,
         })
         .expect(201);
 
@@ -444,6 +506,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'comment',
           content: 'First comment',
+          actionID: 2,
         })
         .expect(201);
 
@@ -451,7 +514,9 @@ describe('Session API Endpoints', () => {
       const session = await Session.findOne({ sessionCode: testSessionCode });
       expect(session?.actions).toHaveLength(2);
       expect(session?.actions[0].type).toBe('question');
+      expect(session?.actions[0].actionID).toBe(1);
       expect(session?.actions[1].type).toBe('comment');
+      expect(session?.actions[1].actionID).toBe(2);
     });
 
     it('should trim content whitespace', async () => {
@@ -460,6 +525,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: '  Trimmed Content  ',
+          actionID: 1,
         })
         .expect(201);
 
@@ -475,6 +541,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: 'Test content',
+          actionID: 1,
         })
         .expect(500);
 
@@ -540,6 +607,7 @@ describe('Session API Endpoints', () => {
         .send({
           type: 'question',
           content: 'Test question',
+          actionID: 1,
         })
         .expect(201);
 
@@ -552,6 +620,7 @@ describe('Session API Endpoints', () => {
       expect(response.body.actions[0]).toHaveProperty('type', 'question');
       expect(response.body.actions[0]).toHaveProperty('content', 'Test question');
       expect(response.body.actions[0]).toHaveProperty('id');
+      expect(response.body.actions[0]).toHaveProperty('actionID', 1);
       expect(response.body.actions[0]).toHaveProperty('start_time');
     });
 
@@ -616,9 +685,9 @@ describe('Session API Endpoints', () => {
 
       // Add multiple actions
       const actions = [
-        { type: 'question', content: 'First question?' },
-        { type: 'comment', content: 'First comment' },
-        { type: 'question', content: 'Second question?' },
+        { type: 'question', content: 'First question?', actionID: 1 },
+        { type: 'comment', content: 'First comment', actionID: 2 },
+        { type: 'question', content: 'Second question?', actionID: 3 },
       ];
 
       for (const action of actions) {
