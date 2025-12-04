@@ -217,6 +217,7 @@ describe("SessionPage", () => {
                         message: "Action added",
                         action: {
                             id: 'test-id',
+                            actionID: 1,
                             type: 'question',
                             content: 'What is React?',
                             start_time: new Date().toISOString()
@@ -240,7 +241,7 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
                 });
             });
 
@@ -253,6 +254,7 @@ describe("SessionPage", () => {
                             message: "Action added",
                             action: {
                                 id: 'test-id-1',
+                                actionID: 1,
                                 type: 'question',
                                 content: 'First question?',
                                 start_time: new Date().toISOString()
@@ -265,6 +267,7 @@ describe("SessionPage", () => {
                             message: "Action added",
                             action: {
                                 id: 'test-id-2',
+                                actionID: 2,
                                 type: 'question',
                                 content: 'Second question?',
                                 start_time: new Date().toISOString()
@@ -290,7 +293,7 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
                 });
                 
                 // Second question
@@ -302,8 +305,8 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
                     expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-question-2/i)).toBeInTheDocument();
                 });
             });
         });
@@ -478,6 +481,7 @@ describe("SessionPage", () => {
                         message: "Action added",
                         action: {
                             id: 'test-id',
+                            actionID: 1,
                             type: 'comment',
                             content: 'Great explanation!',
                             start_time: new Date().toISOString()
@@ -501,7 +505,7 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
                 });
             });
 
@@ -514,6 +518,7 @@ describe("SessionPage", () => {
                             message: "Action added",
                             action: {
                                 id: 'test-id-1',
+                                actionID: 1,
                                 type: 'comment',
                                 content: 'First comment',
                                 start_time: new Date().toISOString()
@@ -526,6 +531,7 @@ describe("SessionPage", () => {
                             message: "Action added",
                             action: {
                                 id: 'test-id-2',
+                                actionID: 2,
                                 type: 'comment',
                                 content: 'Second comment',
                                 start_time: new Date().toISOString()
@@ -551,7 +557,7 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
                 });
                 
                 // Second comment
@@ -563,8 +569,8 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
                     expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-comment-2/i)).toBeInTheDocument();
                 });
             });
 
