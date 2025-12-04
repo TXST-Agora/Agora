@@ -143,6 +143,7 @@ describe("SessionPage", () => {
                         message: "Action added",
                         action: {
                             id: 'test-id',
+                            actionID: 1,
                             type: 'question',
                             content: 'What is the answer?',
                             start_time: new Date().toISOString()
@@ -176,6 +177,7 @@ describe("SessionPage", () => {
                             body: JSON.stringify({
                                 type: 'question',
                                 content: 'What is the answer?',
+                                actionID: 1,
                             }),
                         })
                     );
@@ -381,6 +383,7 @@ describe("SessionPage", () => {
                         message: "Action added",
                         action: {
                             id: 'test-id',
+                            actionID: 1,
                             type: 'comment',
                             content: 'Great question!',
                             start_time: new Date().toISOString()
@@ -408,9 +411,13 @@ describe("SessionPage", () => {
                         expect.stringContaining(`/api/session/${mockSessionCode}/action`),
                         expect.objectContaining({
                             method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
                             body: JSON.stringify({
                                 type: 'comment',
                                 content: 'Great question!',
+                                actionID: 1,
                             }),
                         })
                     );

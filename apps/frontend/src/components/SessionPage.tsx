@@ -12,6 +12,7 @@ type SessionData = {
     hostStartTime: string;
     actions: Array<{
         id: string;
+        actionID: number;
         type: string;
         content: string;
         start_time: string;
@@ -30,7 +31,8 @@ const SessionPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string>("");
 
-    const [submittedElements, setSubmittedElements] = useState<Array<{ id: number; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
+    const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
+    const [maxActionID, setMaxActionID] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     // Load session data on mount
@@ -59,7 +61,11 @@ const SessionPage = () => {
 
                 // Load existing actions and convert to display format
                 if (data.actions && data.actions.length > 0) {
-                    const elements = data.actions.map((action, idx) => {
+                    // Find the maximum actionID from loaded actions
+                    const maxID = Math.max(...data.actions.map(a => a.actionID || 0), 0);
+                    setMaxActionID(maxID);
+
+                    const elements = data.actions.map((action) => {
                         // Generate random positions for existing actions
                         const elemSize = 48;
                         const gap = 8;
@@ -70,7 +76,7 @@ const SessionPage = () => {
                         const maxTop = Math.max(0, containerHeight - elemSize - 8);
 
                         return {
-                            id: idx,
+                            id: action.id,
                             type: action.type,
                             content: action.content,
                             submitTime: action.start_time,
@@ -80,6 +86,8 @@ const SessionPage = () => {
                     });
                     setSubmittedElements(elements);
                     setVisible(false);
+                } else {
+                    setMaxActionID(0);
                 }
             } catch (error) {
                 setLoadError(error instanceof Error ? error.message : "Failed to load session");
@@ -107,6 +115,10 @@ const SessionPage = () => {
         setIsSubmitting(true);
 
         try {
+            // Generate numeric actionID on frontend (1-based, incrementing)
+            // Use the max actionID from loaded session data + 1, or start at 1 if no actions
+            const actionID = maxActionID + 1;
+
             // Call backend API to add action
             const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/action`, {
                 method: 'POST',
@@ -116,6 +128,7 @@ const SessionPage = () => {
                 body: JSON.stringify({
                     type,
                     content: trimmed,
+                    actionID: actionID,
                 }),
             });
 
@@ -127,7 +140,8 @@ const SessionPage = () => {
             const data = await response.json();
 
             // Success - add to local state for display
-            const id = submittedElements.length;
+            // Use the UUID from backend response, and the actionID we generated
+            const id = data.action?.id || `temp-${actionID}`;
             const date = new Date();
 
             // compute a random non-overlapping position inside the session container
@@ -171,6 +185,9 @@ const SessionPage = () => {
 
             // store position (even if overlapping after attempts)
             setSubmittedElements((s) => [...s, { id, type: type, content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
+            
+            // Update maxActionID for next submission
+            setMaxActionID(actionID);
 
             setInput("");
             if(type == "question") setShowAskModal(false);
