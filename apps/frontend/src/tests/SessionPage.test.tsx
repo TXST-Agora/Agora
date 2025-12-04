@@ -241,7 +241,9 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
+                    const element = screen.getByLabelText(/submitted-question-1/i);
+                    expect(element).toBeInTheDocument();
+                    expect(element).toHaveAttribute('id', '1');
                 });
             });
 
@@ -293,7 +295,9 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
+                    const element1 = screen.getByLabelText(/submitted-question-1/i);
+                    expect(element1).toBeInTheDocument();
+                    expect(element1).toHaveAttribute('id', '1');
                 });
                 
                 // Second question
@@ -305,8 +309,12 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
-                    expect(screen.getByLabelText(/submitted-question-2/i)).toBeInTheDocument();
+                    const element1 = screen.getByLabelText(/submitted-question-1/i);
+                    const element2 = screen.getByLabelText(/submitted-question-2/i);
+                    expect(element1).toBeInTheDocument();
+                    expect(element1).toHaveAttribute('id', '1');
+                    expect(element2).toBeInTheDocument();
+                    expect(element2).toHaveAttribute('id', '2');
                 });
             });
         });
@@ -505,7 +513,9 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
+                    const element = screen.getByLabelText(/submitted-comment-1/i);
+                    expect(element).toBeInTheDocument();
+                    expect(element).toHaveAttribute('id', '1');
                 });
             });
 
@@ -557,7 +567,9 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
+                    const element1 = screen.getByLabelText(/submitted-comment-1/i);
+                    expect(element1).toBeInTheDocument();
+                    expect(element1).toHaveAttribute('id', '1');
                 });
                 
                 // Second comment
@@ -569,8 +581,12 @@ describe("SessionPage", () => {
                 await fireEvent.click(submitButton);
                 
                 await waitFor(() => {
-                    expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
-                    expect(screen.getByLabelText(/submitted-comment-2/i)).toBeInTheDocument();
+                    const element1 = screen.getByLabelText(/submitted-comment-1/i);
+                    const element2 = screen.getByLabelText(/submitted-comment-2/i);
+                    expect(element1).toBeInTheDocument();
+                    expect(element1).toHaveAttribute('id', '1');
+                    expect(element2).toBeInTheDocument();
+                    expect(element2).toHaveAttribute('id', '2');
                 });
             });
 

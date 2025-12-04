@@ -31,7 +31,7 @@ const SessionPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string>("");
 
-    const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; domId: string; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
+    const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
     const [maxActionID, setMaxActionID] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -78,7 +78,6 @@ const SessionPage = () => {
                         return {
                             id: action.id,
                             actionID: action.actionID,
-                            domId: `${action.type}-${action.actionID}`,
                             type: action.type,
                             content: action.content,
                             submitTime: action.start_time,
@@ -145,7 +144,6 @@ const SessionPage = () => {
             // Use the UUID and actionID from backend response
             const backendActionID = data.action?.actionID || actionID;
             const id = data.action?.id || `temp-${backendActionID}`;
-            const domId = `${type}-${backendActionID}`;
             const date = new Date();
 
             // compute a random non-overlapping position inside the session container
@@ -188,7 +186,7 @@ const SessionPage = () => {
             }
 
             // store position (even if overlapping after attempts)
-            setSubmittedElements((s) => [...s, { id, actionID: backendActionID, domId, type: type, content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
+            setSubmittedElements((s) => [...s, { id, actionID: backendActionID, type: type, content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
             
             // Update maxActionID for next submission
             setMaxActionID(backendActionID);
@@ -291,7 +289,7 @@ const SessionPage = () => {
                         title={`${f.content}`}
                         aria-label={`submitted-${f.type}-${f.actionID}`}
                         style={{ left: f.x != null ? `${f.x}px` : undefined, top: f.y != null ? `${f.y}px` : undefined }}
-                        id={f.domId}
+                        id={String(f.actionID)}
                     >
                         {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
                     </button>
