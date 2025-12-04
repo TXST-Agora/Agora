@@ -20,19 +20,19 @@ const MIN_TITLE_LENGTH = 3;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 /**
- * Calls the backend API to generate a unique session code and save session data
+ * Calls the backend API to create a session and save session data
  * @param title - The session title
  * @param description - The session description (optional)
- * @param sessionType - The session type/mode
- * @returns The generated session code
+ * @param mode - The session mode
+ * @returns The created session object with sessionCode
  * @throws Error if the API call fails
  */
-const generateSessionCode = async (
+const createSession = async (
   title: string,
   description: string,
-  sessionType: string
-): Promise<string> => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/session/code`, {
+  mode: string
+): Promise<{ sessionCode: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/session/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -40,17 +40,17 @@ const generateSessionCode = async (
     body: JSON.stringify({
       title,
       description,
-      sessionType,
+      mode,
     }),
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Failed to generate session code' }));
-    throw new Error(errorData.message || 'Failed to generate session code');
+    const errorData = await response.json().catch(() => ({ message: 'Failed to create session' }));
+    throw new Error(errorData.message || 'Failed to create session');
   }
 
   const data = await response.json();
-  return data.code;
+  return data;
 };
 
 type ModePreviewProps = {
@@ -127,13 +127,13 @@ const Host = () => {
     setSubmitState("loading");
 
     try {
-      const code = await generateSessionCode(title.trim(), description.trim(), mode);
-      setSessionCode(code);
+      const data = await createSession(title.trim(), description.trim(), mode);
+      setSessionCode(data.sessionCode);
       setSubmitState("success");
       setShowToast(true);
       setCodeHighlight(true);
 
-      console.log("Session created:", { code, mode, title, description });
+      console.log("Session created:", { sessionCode: data.sessionCode, mode, title, description });
 
       setTimeout(() => {
         sessionCodeRef.current?.scrollIntoView({
@@ -210,8 +210,8 @@ const Host = () => {
     setSubmitState("loading");
 
     try {
-      const code = await generateSessionCode(title.trim(), description.trim(), mode);
-      setSessionCode(code);
+      const data = await createSession(title.trim(), description.trim(), mode);
+      setSessionCode(data.sessionCode);
       setSubmitState("success");
       setShowToast(true);
       setCodeHighlight(true);

@@ -1,17 +1,65 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+
+// Mock useParams before importing SessionPage
+const mockSessionCode = "TEST12";
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useParams: () => ({ sessionCode: mockSessionCode }),
+    };
+});
+
 import SessionPage from '../components/SessionPage';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe("SessionPage", () => {
+    let fetchMock: ReturnType<typeof vi.fn>;
 
-    it('renders session page with FAB and Initial text', () => {
-        render(<SessionPage />);
-        expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+    beforeEach(() => {
+        fetchMock = vi.fn();
+        (globalThis as any).fetch = fetchMock;
+        
+        // Mock GET session endpoint
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                sessionCode: mockSessionCode,
+                title: "Test Session",
+                description: "Test Description",
+                mode: "normal",
+                hostStartTime: new Date().toISOString(),
+                actions: []
+            }),
+        });
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    const renderWithRouter = () => {
+        return render(
+            <MemoryRouter>
+                <SessionPage />
+            </MemoryRouter>
+        );
+    };
+
+    it('renders session page with FAB and Initial text', async () => {
+        renderWithRouter();
+        await waitFor(() => {
+            expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+        });
         expect(screen.getByLabelText(/initial text/i)).toBeVisible();
     });
 
-    it('opens Ask/Comment option when clicked', () => {
-        render(<SessionPage />);
+    it('opens Ask/Comment option when clicked', async () => {
+        renderWithRouter();
+        await waitFor(() => {
+            expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+        });
         const fabButton = screen.getByLabelText(/Open actions/i);
         fireEvent.click(fabButton);
         expect(screen.getByText(/\?/i)).toBeVisible();
@@ -21,8 +69,11 @@ describe("SessionPage", () => {
     describe("Modal tests", () => {
     
         describe("Ask Modal", () => {
-            it('opens Ask Modal when Ask button is clicked', () => {
-                render(<SessionPage />);
+            it('opens Ask Modal when Ask button is clicked', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -30,9 +81,12 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Ask a question dialog/i)).toBeVisible();
             });
 
-            it('shows alert when submitting with empty input', () => {
+            it('shows alert when submitting with empty input', async () => {
                 const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-                render(<SessionPage />);
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -45,8 +99,11 @@ describe("SessionPage", () => {
                 alertSpy.mockRestore();
             });
 
-            it('closes modal when Cancel button is clicked', () => {
-                render(<SessionPage />);
+            it('closes modal when Cancel button is clicked', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -60,8 +117,11 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Ask a question dialog/i)).not.toHaveClass('visible');
             });
 
-            it('closes modal when Escape key is pressed', () => {
-                render(<SessionPage />);
+            it('closes modal when Escape key is pressed', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -75,8 +135,25 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Ask a question dialog/i)).not.toHaveClass('visible');
             });
 
-            it('submits successfully with valid input', () => {
-                render(<SessionPage />);
+            it('submits successfully with valid input', async () => {
+                // Mock POST action endpoint
+                fetchMock.mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({
+                        message: "Action added",
+                        action: {
+                            id: 'test-id',
+                            type: 'question',
+                            content: 'What is the answer?',
+                            start_time: new Date().toISOString()
+                        }
+                    }),
+                });
+
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -86,14 +163,34 @@ describe("SessionPage", () => {
                 fireEvent.change(textarea, { target: { value: 'What is the answer?' } });
                 
                 const submitButton = screen.getAllByText(/Submit/)[0];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/Ask a question dialog/i)).not.toHaveClass('visible');
-                expect(textarea.value).toBe('');
+                await waitFor(() => {
+                    expect(fetchMock).toHaveBeenCalledWith(
+                        expect.stringContaining(`/api/session/${mockSessionCode}/action`),
+                        expect.objectContaining({
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                type: 'question',
+                                content: 'What is the answer?',
+                            }),
+                        })
+                    );
+                });
+                
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Ask a question dialog/i)).not.toHaveClass('visible');
+                });
             });
 
-            it('clears input when Cancel is clicked', () => {
-                render(<SessionPage />);
+            it('clears input when Cancel is clicked', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -110,8 +207,25 @@ describe("SessionPage", () => {
                 expect(textarea.value).toBe('');
             });
 
-            it('generates a new FAB question element on successful submit', () => {
-                render(<SessionPage />);
+            it('generates a new FAB question element on successful submit', async () => {
+                // Mock POST action endpoint
+                fetchMock.mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({
+                        message: "Action added",
+                        action: {
+                            id: 'test-id',
+                            type: 'question',
+                            content: 'What is React?',
+                            start_time: new Date().toISOString()
+                        }
+                    }),
+                });
+
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const askButton = screen.getByText(/\?/i);
@@ -121,13 +235,45 @@ describe("SessionPage", () => {
                 fireEvent.change(textarea, { target: { value: 'What is React?' } });
                 
                 const submitButton = screen.getAllByText(/Submit/)[0];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                });
             });
 
-            it('generates multiple FAB question elements on multiple submits', () => {
-                render(<SessionPage />);
+            it('generates multiple FAB question elements on multiple submits', async () => {
+                // Mock POST action endpoints for both submissions
+                fetchMock
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        json: async () => ({
+                            message: "Action added",
+                            action: {
+                                id: 'test-id-1',
+                                type: 'question',
+                                content: 'First question?',
+                                start_time: new Date().toISOString()
+                            }
+                        }),
+                    })
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        json: async () => ({
+                            message: "Action added",
+                            action: {
+                                id: 'test-id-2',
+                                type: 'question',
+                                content: 'Second question?',
+                                start_time: new Date().toISOString()
+                            }
+                        }),
+                    });
+
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 
                 // First question
                 const fabButton = screen.getByLabelText(/Open actions/i);
@@ -139,9 +285,11 @@ describe("SessionPage", () => {
                 fireEvent.change(textarea, { target: { value: 'First question?' } });
                 
                 let submitButton = screen.getAllByText(/Submit/)[0];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                });
                 
                 // Second question
                 fireEvent.click(fabButton);
@@ -149,16 +297,21 @@ describe("SessionPage", () => {
                 
                 fireEvent.change(textarea, { target: { value: 'Second question?' } });
                 submitButton = screen.getAllByText(/Submit/)[0];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
-                expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/submitted-question-0/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-question-1/i)).toBeInTheDocument();
+                });
             });
         });
 
         describe("Comment Modal", () => {
-            it('opens Comment Modal when Comment button is clicked', () => {
-                render(<SessionPage />);
+            it('opens Comment Modal when Comment button is clicked', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -166,9 +319,12 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Leave a comment dialog/i)).toBeVisible();
             });
 
-            it('shows alert when submitting with empty input', () => {
+            it('shows alert when submitting with empty input', async () => {
                 const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-                render(<SessionPage />);
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -181,8 +337,11 @@ describe("SessionPage", () => {
                 alertSpy.mockRestore();
             });
 
-            it('closes modal when Cancel button is clicked', () => {
-                render(<SessionPage />);
+            it('closes modal when Cancel button is clicked', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -196,8 +355,11 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Leave a comment dialog/i)).not.toHaveClass('visible');
             });
 
-            it('closes modal when Escape key is pressed', () => {
-                render(<SessionPage />);
+            it('closes modal when Escape key is pressed', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -211,8 +373,25 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Leave a comment dialog/i)).not.toHaveClass('visible');
             });
 
-            it('submits successfully with valid input', () => {
-                render(<SessionPage />);
+            it('submits successfully with valid input', async () => {
+                // Mock POST action endpoint
+                fetchMock.mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({
+                        message: "Action added",
+                        action: {
+                            id: 'test-id',
+                            type: 'comment',
+                            content: 'Great question!',
+                            start_time: new Date().toISOString()
+                        }
+                    }),
+                });
+
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -222,14 +401,31 @@ describe("SessionPage", () => {
                 fireEvent.change(textarea, { target: { value: 'Great question!' } });
                 
                 const submitButton = screen.getAllByText(/Submit/)[1];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/Leave a comment dialog/i)).not.toHaveClass('visible');
-                expect(textarea.value).toBe('');
+                await waitFor(() => {
+                    expect(fetchMock).toHaveBeenCalledWith(
+                        expect.stringContaining(`/api/session/${mockSessionCode}/action`),
+                        expect.objectContaining({
+                            method: 'POST',
+                            body: JSON.stringify({
+                                type: 'comment',
+                                content: 'Great question!',
+                            }),
+                        })
+                    );
+                });
+                
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Leave a comment dialog/i)).not.toHaveClass('visible');
+                });
             });
 
-            it('clears input when Cancel is clicked', () => {
-                render(<SessionPage />);
+            it('clears input when Cancel is clicked', async () => {
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -246,9 +442,12 @@ describe("SessionPage", () => {
                 expect(textarea.value).toBe('');
             });
 
-            it('trims whitespace before validation', () => {
+            it('trims whitespace before validation', async () => {
                 const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-                render(<SessionPage />);
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -264,8 +463,25 @@ describe("SessionPage", () => {
                 alertSpy.mockRestore();
             });
 
-            it('generates a new FAB comment element on successful submit', () => {
-                render(<SessionPage />);
+            it('generates a new FAB comment element on successful submit', async () => {
+                // Mock POST action endpoint
+                fetchMock.mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({
+                        message: "Action added",
+                        action: {
+                            id: 'test-id',
+                            type: 'comment',
+                            content: 'Great explanation!',
+                            start_time: new Date().toISOString()
+                        }
+                    }),
+                });
+
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 const fabButton = screen.getByLabelText(/Open actions/i);
                 fireEvent.click(fabButton);
                 const commentButton = screen.getByText(/✎/i);
@@ -275,13 +491,45 @@ describe("SessionPage", () => {
                 fireEvent.change(textarea, { target: { value: 'Great explanation!' } });
                 
                 const submitButton = screen.getAllByText(/Submit/)[1];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                });
             });
 
-            it('generates multiple FAB comment elements on multiple submits', () => {
-                render(<SessionPage />);
+            it('generates multiple FAB comment elements on multiple submits', async () => {
+                // Mock POST action endpoints for both submissions
+                fetchMock
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        json: async () => ({
+                            message: "Action added",
+                            action: {
+                                id: 'test-id-1',
+                                type: 'comment',
+                                content: 'First comment',
+                                start_time: new Date().toISOString()
+                            }
+                        }),
+                    })
+                    .mockResolvedValueOnce({
+                        ok: true,
+                        json: async () => ({
+                            message: "Action added",
+                            action: {
+                                id: 'test-id-2',
+                                type: 'comment',
+                                content: 'Second comment',
+                                start_time: new Date().toISOString()
+                            }
+                        }),
+                    });
+
+                renderWithRouter();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
+                });
                 
                 // First comment
                 const fabButton = screen.getByLabelText(/Open actions/i);
@@ -293,9 +541,11 @@ describe("SessionPage", () => {
                 fireEvent.change(textarea, { target: { value: 'First comment' } });
                 
                 let submitButton = screen.getAllByText(/Submit/)[1];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                });
                 
                 // Second comment
                 fireEvent.click(screen.getByLabelText(/Open actions/i));
@@ -303,10 +553,12 @@ describe("SessionPage", () => {
                 
                 fireEvent.change(textarea, { target: { value: 'Second comment' } });
                 submitButton = screen.getAllByText(/Submit/)[1];
-                fireEvent.click(submitButton);
+                await fireEvent.click(submitButton);
                 
-                expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
-                expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
+                await waitFor(() => {
+                    expect(screen.getByLabelText(/submitted-comment-0/i)).toBeInTheDocument();
+                    expect(screen.getByLabelText(/submitted-comment-1/i)).toBeInTheDocument();
+                });
             });
 
             

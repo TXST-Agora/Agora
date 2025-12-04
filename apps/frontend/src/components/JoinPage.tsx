@@ -1,7 +1,9 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './JoinPage.css';
 
 const JoinPage = () => {
+  const navigate = useNavigate();
   const [sessionCode, setSessionCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
@@ -31,11 +33,12 @@ const JoinPage = () => {
     }
 
     setErrorMessage('');
-    setConfirmationMessage('Submitting...');
+    setConfirmationMessage('Verifying...');
 
+    // Navigate to session page after brief delay
     setTimeout(() => {
-      window.alert('Code verified: ' + trimmedCode);
       setConfirmationMessage('');
+      navigate(`/forum/${trimmedCode}`);
     }, 600);
   };
 

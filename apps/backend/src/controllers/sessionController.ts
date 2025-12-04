@@ -1,5 +1,9 @@
 import { type Request, type Response } from 'express';
-import { createSession } from '../services/sessionService.js';
+import { randomUUID } from 'crypto';
+import { createSession, createSessionWithMode } from '../services/sessionService.js';
+import '../../db/connection.js';
+// @ts-ignore - JS file without type definitions
+import Session from '../../db/session-schema.js';
 
 /**
  * Controller for session-related HTTP endpoints
@@ -14,6 +18,7 @@ import { createSession } from '../services/sessionService.js';
 const MIN_TITLE_LENGTH = 3;
 const MAX_DESCRIPTION_LENGTH = 200;
 const VALID_SESSION_TYPES = ['normal', 'colorShift', 'sizePulse'] as const;
+const VALID_MODES = ['normal', 'colorShift', 'sizePulse'] as const;
 
 export const createSessionCode = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -82,6 +87,193 @@ export const createSessionCode = async (req: Request, res: Response): Promise<vo
   } catch (error) {
     res.status(500).json({ 
       message: 'Failed to generate session code', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+};
+
+/**
+ * POST /api/session/create
+ * Creates a new session with mode field and saves it to the database
+ * Request body should contain: { title: string, description?: string, mode: string }
+ */
+export const createSessionEndpoint = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { title, description, mode } = req.body;
+
+    // Validate required fields
+    if (!title || typeof title !== 'string') {
+      res.status(400).json({ 
+        message: 'Title is required and must be a string' 
+      });
+      return;
+    }
+
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length === 0) {
+      res.status(400).json({ 
+        message: 'Title cannot be empty' 
+      });
+      return;
+    }
+
+    if (trimmedTitle.length < MIN_TITLE_LENGTH) {
+      res.status(400).json({ 
+        message: `Title must be at least ${MIN_TITLE_LENGTH} characters` 
+      });
+      return;
+    }
+
+    if (!mode || typeof mode !== 'string') {
+      res.status(400).json({ 
+        message: 'Mode is required and must be a string' 
+      });
+      return;
+    }
+
+    if (!VALID_MODES.includes(mode as typeof VALID_MODES[number])) {
+      res.status(400).json({ 
+        message: `Mode must be one of: ${VALID_MODES.join(', ')}` 
+      });
+      return;
+    }
+
+    // Validate description if provided
+    const trimmedDescription = description?.trim() || '';
+    if (trimmedDescription.length > MAX_DESCRIPTION_LENGTH) {
+      res.status(400).json({ 
+        message: `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters` 
+      });
+      return;
+    }
+
+    const session = await createSessionWithMode({
+      title: trimmedTitle,
+      description: trimmedDescription,
+      mode,
+    });
+
+    res.status(201).json({
+      sessionCode: session.sessionCode,
+      title: session.title,
+      description: session.description,
+      mode: session.mode,
+      hostStartTime: session.hostStartTime,
+      actions: session.actions,
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to create session', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+};
+
+/**
+ * GET /api/session/:sessionCode
+ * Retrieves a session by sessionCode
+ */
+export const getSession = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionCode } = req.params;
+
+    const session = await Session.findOne({ sessionCode });
+    if (!session) {
+      res.status(404).json({ 
+        message: 'Session not found' 
+      });
+      return;
+    }
+
+    res.status(200).json({
+      sessionCode: session.sessionCode,
+      title: session.title,
+      description: session.description,
+      mode: session.mode,
+      hostStartTime: session.hostStartTime,
+      actions: session.actions || [],
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to retrieve session', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+};
+
+/**
+ * POST /api/session/:sessionCode/action
+ * Adds a new action (question/comment) to a session
+ * Request body should contain: { type: string, content: string }
+ */
+export const addSessionAction = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionCode } = req.params;
+    const { type, content } = req.body;
+
+    // Validate required fields
+    if (!type || typeof type !== 'string') {
+      res.status(400).json({ 
+        message: 'type is required and must be a string' 
+      });
+      return;
+    }
+
+    if (!content || typeof content !== 'string') {
+      res.status(400).json({ 
+        message: 'content is required and must be a string' 
+      });
+      return;
+    }
+
+    const trimmedContent = content.trim();
+    if (trimmedContent.length === 0) {
+      res.status(400).json({ 
+        message: 'content cannot be empty' 
+      });
+      return;
+    }
+
+    // Validate action type
+    const validActionTypes = ['question', 'comment'] as const;
+    if (!validActionTypes.includes(type as typeof validActionTypes[number])) {
+      res.status(400).json({ 
+        message: `type must be one of: ${validActionTypes.join(', ')}` 
+      });
+      return;
+    }
+
+    // Find the session
+    const session = await Session.findOne({ sessionCode });
+    if (!session) {
+      res.status(404).json({ 
+        message: 'Session not found' 
+      });
+      return;
+    }
+
+    // Create new action
+    const newAction = {
+      id: randomUUID(),
+      type,
+      content: trimmedContent,
+      start_time: new Date(),
+    };
+
+    // Add action to session
+    if (!session.actions) {
+      session.actions = [];
+    }
+    session.actions.push(newAction);
+    await session.save();
+
+    res.status(201).json({ 
+      message: 'Action added', 
+      action: newAction 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to add action', 
       error: error instanceof Error ? error.message : String(error) 
     });
   }

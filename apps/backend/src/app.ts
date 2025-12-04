@@ -14,5 +14,6 @@ app.use(cookieParser());
 
 app.get('/healthz', (_req: Request, res: Response) => res.status(200).send('ok'));
 app.use('/api/v1/session', sessionRoutes);
+app.use('/api/session', sessionRoutes);
 
 export default app;
