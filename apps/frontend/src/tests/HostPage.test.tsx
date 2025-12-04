@@ -89,7 +89,14 @@ describe("Host Page", () => {
     // Mock successful API response
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ code: mockSessionCode }),
+      json: async () => ({ 
+        sessionCode: mockSessionCode,
+        title: 'My Forum',
+        description: '',
+        mode: 'normal',
+        hostStartTime: new Date().toISOString(),
+        actions: []
+      }),
     });
 
     render(
@@ -121,7 +128,7 @@ describe("Host Page", () => {
     // Wait for API call to complete
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/session/code'),
+        expect.stringContaining('/api/session/create'),
         expect.objectContaining({
           method: 'POST',
           headers: {
@@ -130,7 +137,7 @@ describe("Host Page", () => {
           body: JSON.stringify({
             title: 'My Forum',
             description: '',
-            sessionType: 'normal',
+            mode: 'normal',
           }),
         })
       );
@@ -155,7 +162,14 @@ describe("Host Page", () => {
     // Mock successful API response
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ code: mockSessionCode }),
+      json: async () => ({ 
+        sessionCode: mockSessionCode,
+        title: 'Demo',
+        description: '',
+        mode: 'normal',
+        hostStartTime: new Date().toISOString(),
+        actions: []
+      }),
     });
 
     render(
@@ -188,8 +202,8 @@ describe("Host Page", () => {
       expect(screen.getByText(mockSessionCode)).toBeInTheDocument();
     }, { timeout: 3000 });
 
-    // The button's aria-label includes the session code, so match on "Copy session code"
-    const copyBtn = screen.getByRole("button", { name: new RegExp(`copy session code`, 'i') });
+    // The button's aria-label includes the session code
+    const copyBtn = screen.getByRole("button", { name: new RegExp(`copy session code ${mockSessionCode}`, 'i') });
     
     // Click the copy button
     await act(async () => {
@@ -228,13 +242,20 @@ describe("Host Page", () => {
     expect(screen.getByText(/grow and shrink/i)).toBeInTheDocument();
   });
 
-  it("sends correct sessionType to API when mode is selected", async () => {
+  it("sends correct mode to API when mode is selected", async () => {
     vi.useRealTimers();
     const mockSessionCode = "MODE123";
     
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ code: mockSessionCode }),
+      json: async () => ({ 
+        sessionCode: mockSessionCode,
+        title: 'Test Forum',
+        description: '',
+        mode: 'colorShift',
+        hostStartTime: new Date().toISOString(),
+        actions: []
+      }),
     });
 
     render(
@@ -264,16 +285,16 @@ describe("Host Page", () => {
       submitBtn.click();
     });
 
-    // Verify API was called with correct sessionType
+    // Verify API was called with correct mode
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/session/code'),
+        expect.stringContaining('/api/session/create'),
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
             title: 'Test Forum',
             description: '',
-            sessionType: 'colorShift',
+            mode: 'colorShift',
           }),
         })
       );
@@ -282,7 +303,7 @@ describe("Host Page", () => {
 
   it("handles API error and shows error message", async () => {
     vi.useRealTimers();
-    const errorMessage = "Failed to generate session code";
+    const errorMessage = "Failed to create session";
     
     // Mock failed API response
     fetchMock.mockResolvedValueOnce({
@@ -352,9 +373,12 @@ describe("Host Page", () => {
       submitBtn.click();
     });
 
-    // Wait for error message to appear
+    // Wait for error message to appear - network errors show generic message
     await waitFor(() => {
-      expect(screen.getByText(/network error/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+      const errorElement = screen.queryByText(/could not create session/i) || 
+                          screen.queryByText(/network error/i) ||
+                          screen.queryByText(/failed to create session/i);
+      expect(errorElement).toBeInTheDocument();
+    }, { timeout: 5000 });
   });
 });

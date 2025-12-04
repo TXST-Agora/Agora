@@ -71,3 +71,54 @@ export const createSession = async (options: {
   return session;
 };
 
+/**
+ * Creates a new session with the new endpoint structure
+ * @param options - Session creation options
+ * @param options.title - The session title
+ * @param options.description - The session description (optional)
+ * @param options.mode - The session mode (e.g., 'normal', 'colorShift', 'sizePulse')
+ * @returns The created session document
+ */
+export const createSessionWithMode = async (options: {
+  title: string;
+  description?: string;
+  mode: string;
+}) => {
+  const { title, description, mode } = options;
+
+  // Generate a unique code
+  let code: string = '';
+  let isUnique = false;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  // Ensure code is unique (check both sessionID and sessionCode fields)
+  while (!isUnique && attempts < maxAttempts) {
+    code = generateSessionCode(6);
+    const existingSession = await Session.findOne({ 
+      $or: [{ sessionID: code }, { sessionCode: code }] 
+    });
+    if (!existingSession) {
+      isUnique = true;
+    }
+    attempts++;
+  }
+
+  if (!isUnique) {
+    throw new Error('Failed to generate unique session code after multiple attempts');
+  }
+
+  // Create and save the session with new field structure
+  const session = new Session({
+    sessionCode: code,
+    title,
+    description: description || '',
+    mode,
+    hostStartTime: new Date(),
+    actions: [],
+  });
+
+  await session.save();
+  return session;
+};
+
