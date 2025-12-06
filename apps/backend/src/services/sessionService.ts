@@ -256,15 +256,30 @@ export const getActions = async (sessionCode: string): Promise<{
     throw new Error('Session not found');
   }
 
+  const currentTime = new Date();
+  const hostStartTime = session.hostStartTime 
+    ? (session.hostStartTime instanceof Date ? session.hostStartTime : new Date(session.hostStartTime))
+    : null;
+
   // Extract actionID, timeMargin, size, and color for each action
+  // Calculate timeMargin dynamically based on current time and action start_time
   const actions: Array<{ actionID: number; timeMargin: number | null; size?: number; color?: string }> = [];
   
   if (Array.isArray(session.actions)) {
     session.actions.forEach((action: Action) => {
       if (action.actionID !== undefined && action.actionID !== null) {
+        // Calculate timeMargin dynamically: time since action was created (in seconds)
+        let timeMargin: number | null = null;
+        if (action.start_time) {
+          const actionStartTime = action.start_time instanceof Date
+            ? action.start_time
+            : new Date(action.start_time);
+          timeMargin = (currentTime.getTime() - actionStartTime.getTime()) / 1000;
+        }
+
         actions.push({
           actionID: action.actionID,
-          timeMargin: action.timeMargin ?? null,
+          timeMargin,
           size: action.size,
           color: action.color,
         });

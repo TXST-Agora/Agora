@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint } from '../controllers/sessionController.js';
+import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionSize } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -26,6 +26,12 @@ router.post('/:sessionCode/action', addSessionAction);
  * Gets all actionIDs and their start_time for a specific session, along with time margins
  */
 router.get('/:sessionCode/actions/times', getActionsEndpoint);
+
+/**
+ * PATCH /api/session/:sessionCode/action/:actionID
+ * Updates the size (and optionally color) of a specific action
+ */
+router.patch('/:sessionCode/action/:actionID', updateActionSize);
 
 /**
  * GET /api/session/:sessionCode/:actionID
