@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateSessionCode, createSession } from '../../services/sessionService.js';
+import { 
+  generateSessionCode, 
+  createSession,
+  getTimePassed,
+  formatTimePassed,
+  createActionTimeMarginDictionary,
+  getActionContent,
+  getActionsWithTimes
+} from '../../services/sessionService.js';
 
 // Mock the database connection and schema
 vi.mock('../../../db/connection.js', () => ({}));
@@ -13,17 +21,21 @@ const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
   class MockSession {
     public _id = 'mock-session-id';
     public sessionID: string;
+    public sessionCode?: string;
     public title: string;
     public description: string;
     public sessionType: string;
     public startTime: Date;
+    public actions?: Array<any>;
     
     constructor(data: any) {
       this.sessionID = data.sessionID;
+      this.sessionCode = data.sessionCode;
       this.title = data.title;
       this.description = data.description;
       this.sessionType = data.sessionType;
       this.startTime = data.startTime;
+      this.actions = data.actions;
     }
     
     save() {
@@ -186,6 +198,417 @@ describe('sessionService', () => {
 
       expect(session.startTime).toBeDefined();
       expect(session.startTime).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('getTimePassed', () => {
+    it('should return null for null input', () => {
+      expect(getTimePassed(null)).toBeNull();
+    });
+
+    it('should return null for undefined input', () => {
+      expect(getTimePassed(undefined)).toBeNull();
+    });
+
+    it('should calculate time passed correctly with Date object', () => {
+      const pastDate = new Date(Date.now() - 5000); // 5 seconds ago
+      const result = getTimePassed(pastDate);
+      
+      expect(result).toBeGreaterThan(4.9); // Allow some margin for test execution time
+      expect(result).toBeLessThan(5.1);
+      expect(typeof result).toBe('number');
+    });
+
+    it('should calculate time passed correctly with ISO string', () => {
+      const pastDate = new Date(Date.now() - 3000); // 3 seconds ago
+      const isoString = pastDate.toISOString();
+      const result = getTimePassed(isoString);
+      
+      expect(result).toBeGreaterThan(2.9);
+      expect(result).toBeLessThan(3.1);
+    });
+
+    it('should return decimal seconds, not milliseconds', () => {
+      const pastDate = new Date(Date.now() - 2500); // 2.5 seconds ago
+      const result = getTimePassed(pastDate);
+      
+      // Should be around 2.5, not 2500
+      expect(result).toBeGreaterThan(2.4);
+      expect(result).toBeLessThan(2.6);
+      expect(result).toBeLessThan(100); // Definitely not in milliseconds range
+    });
+
+    it('should return null for invalid date string', () => {
+      expect(getTimePassed('invalid-date-string')).toBeNull();
+    });
+
+    it('should handle future dates (negative result)', () => {
+      const futureDate = new Date(Date.now() + 2000); // 2 seconds in future
+      const result = getTimePassed(futureDate);
+      
+      expect(result).toBeLessThan(0);
+      expect(result).toBeGreaterThan(-2.1);
+    });
+  });
+
+  describe('formatTimePassed', () => {
+    it('should return null for null input', () => {
+      expect(formatTimePassed(null)).toBeNull();
+    });
+
+    it('should format seconds correctly', () => {
+      expect(formatTimePassed(0)).toBe('0 seconds ago');
+      expect(formatTimePassed(1)).toBe('1 second ago');
+      expect(formatTimePassed(5)).toBe('5 seconds ago');
+      expect(formatTimePassed(59)).toBe('59 seconds ago');
+    });
+
+    it('should format minutes correctly', () => {
+      expect(formatTimePassed(60)).toBe('1 minute ago');
+      expect(formatTimePassed(120)).toBe('2 minutes ago');
+      expect(formatTimePassed(3599)).toBe('59 minutes ago');
+    });
+
+    it('should format hours correctly', () => {
+      expect(formatTimePassed(3600)).toBe('1 hour ago');
+      expect(formatTimePassed(7200)).toBe('2 hours ago');
+      expect(formatTimePassed(86399)).toBe('23 hours ago');
+    });
+
+    it('should format days correctly', () => {
+      expect(formatTimePassed(86400)).toBe('1 day ago');
+      expect(formatTimePassed(172800)).toBe('2 days ago');
+      expect(formatTimePassed(259200)).toBe('3 days ago');
+    });
+
+    it('should handle decimal seconds by flooring', () => {
+      expect(formatTimePassed(1.9)).toBe('1 second ago');
+      expect(formatTimePassed(65.7)).toBe('1 minute ago');
+    });
+  });
+
+  describe('createActionTimeMarginDictionary', () => {
+    it('should return empty object for null input', () => {
+      expect(createActionTimeMarginDictionary(null)).toEqual({});
+    });
+
+    it('should return empty object for undefined input', () => {
+      expect(createActionTimeMarginDictionary(undefined)).toEqual({});
+    });
+
+    it('should return empty object for empty array', () => {
+      expect(createActionTimeMarginDictionary([])).toEqual({});
+    });
+
+    it('should create dictionary with actionID and time passed in seconds', () => {
+      const now = Date.now();
+      const actions = [
+        {
+          actionID: 1,
+          start_time: new Date(now - 5000), // 5 seconds ago
+          content: 'test'
+        },
+        {
+          actionID: 2,
+          start_time: new Date(now - 10000), // 10 seconds ago
+          content: 'test2'
+        }
+      ];
+
+      const result = createActionTimeMarginDictionary(actions);
+
+      expect(result).toHaveProperty('1');
+      expect(result).toHaveProperty('2');
+      expect(result[1]).toBeGreaterThan(4.9);
+      expect(result[1]).toBeLessThan(5.1);
+      expect(result[2]).toBeGreaterThan(9.9);
+      expect(result[2]).toBeLessThan(10.1);
+    });
+
+    it('should handle ISO string dates', () => {
+      const now = Date.now();
+      const actions = [
+        {
+          actionID: 1,
+          start_time: new Date(now - 2000).toISOString(), // 2 seconds ago
+          content: 'test'
+        }
+      ];
+
+      const result = createActionTimeMarginDictionary(actions);
+
+      expect(result[1]).toBeGreaterThan(1.9);
+      expect(result[1]).toBeLessThan(2.1);
+    });
+
+    it('should skip actions without actionID', () => {
+      const now = Date.now();
+      const actions: any[] = [
+        {
+          actionID: 1,
+          start_time: new Date(now - 1000),
+          content: 'test'
+        },
+        {
+          start_time: new Date(now - 2000), // No actionID
+          content: 'test2'
+        },
+        {
+          actionID: null,
+          start_time: new Date(now - 3000), // null actionID
+          content: 'test3'
+        }
+      ];
+
+      const result = createActionTimeMarginDictionary(actions);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(result).toHaveProperty('1');
+    });
+
+    it('should skip actions without start_time', () => {
+      const actions = [
+        {
+          actionID: 1,
+          start_time: new Date(Date.now() - 1000),
+          content: 'test'
+        },
+        {
+          actionID: 2, // No start_time
+          content: 'test2'
+        }
+      ];
+
+      const result = createActionTimeMarginDictionary(actions);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      expect(result).toHaveProperty('1');
+      expect(result).not.toHaveProperty('2');
+    });
+  });
+
+  describe('getActionContent', () => {
+    it('should return action content when session and action exist', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { actionID: 1, content: 'Test question', type: 'question', start_time: new Date() },
+          { actionID: 2, content: 'Test comment', type: 'comment', start_time: new Date() }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const content = await getActionContent('ABC123', 1);
+
+      expect(mockFindOne).toHaveBeenCalledWith({
+        $or: [
+          { sessionCode: 'ABC123' },
+          { sessionID: 'ABC123' }
+        ]
+      });
+      expect(content).toBe('Test question');
+    });
+
+    it('should find session by sessionID if sessionCode not found', async () => {
+      const mockSession = {
+        sessionID: 'XYZ789',
+        sessionCode: undefined,
+        actions: [
+          { actionID: 1, content: 'Found by ID', type: 'question', start_time: new Date() }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const content = await getActionContent('XYZ789', 1);
+
+      expect(content).toBe('Found by ID');
+    });
+
+    it('should throw error when session not found', async () => {
+      mockFindOne.mockResolvedValue(null);
+
+      await expect(getActionContent('NONEXISTENT', 1)).rejects.toThrow('Session not found');
+    });
+
+    it('should throw error when action not found', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { actionID: 1, content: 'Test', type: 'question', start_time: new Date() }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      await expect(getActionContent('ABC123', 999)).rejects.toThrow('Action not found');
+    });
+
+    it('should return null when action has no content', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { actionID: 1, content: null, type: 'question', start_time: new Date() }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const content = await getActionContent('ABC123', 1);
+
+      expect(content).toBeNull();
+    });
+
+    it('should handle empty actions array', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: []
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      await expect(getActionContent('ABC123', 1)).rejects.toThrow('Action not found');
+    });
+  });
+
+  describe('getActionsWithTimes', () => {
+    it('should return actions and time margins', async () => {
+      const now = Date.now();
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { 
+            actionID: 1, 
+            content: 'Question 1', 
+            type: 'question', 
+            start_time: new Date(now - 5000) // 5 seconds ago
+          },
+          { 
+            actionID: 2, 
+            content: 'Comment 1', 
+            type: 'comment', 
+            start_time: new Date(now - 10000) // 10 seconds ago
+          }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('ABC123');
+
+      expect(mockFindOne).toHaveBeenCalledWith({
+        $or: [
+          { sessionCode: 'ABC123' },
+          { sessionID: 'ABC123' }
+        ]
+      });
+
+      expect(result.actions).toHaveLength(2);
+      expect(result.actions[0]?.actionID).toBe(1);
+      expect(result.actions[1]?.actionID).toBe(2);
+      expect(result.timeMargins).toHaveProperty('1');
+      expect(result.timeMargins).toHaveProperty('2');
+      
+      // Time margins should be in seconds, not milliseconds
+      expect(result.timeMargins[1]).toBeGreaterThan(4.9);
+      expect(result.timeMargins[1]).toBeLessThan(5.1);
+      expect(result.timeMargins[2]).toBeGreaterThan(9.9);
+      expect(result.timeMargins[2]).toBeLessThan(10.1);
+    });
+
+    it('should find session by sessionID if sessionCode not found', async () => {
+      const mockSession = {
+        sessionID: 'XYZ789',
+        sessionCode: undefined,
+        actions: [
+          { actionID: 1, content: 'Test', type: 'question', start_time: new Date() }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('XYZ789');
+
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]?.actionID).toBe(1);
+    });
+
+    it('should throw error when session not found', async () => {
+      mockFindOne.mockResolvedValue(null);
+
+      await expect(getActionsWithTimes('NONEXISTENT')).rejects.toThrow('Session not found');
+    });
+
+    it('should handle empty actions array', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: []
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('ABC123');
+
+      expect(result.actions).toHaveLength(0);
+      expect(result.timeMargins).toEqual({});
+    });
+
+    it('should skip actions without actionID', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { actionID: 1, content: 'Test', type: 'question', start_time: new Date() },
+          { content: 'No ID', type: 'comment', start_time: new Date() },
+          { actionID: null, content: 'Null ID', type: 'comment', start_time: new Date() }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('ABC123');
+
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]?.actionID).toBe(1);
+    });
+
+    it('should use current date as default for actions without start_time', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { actionID: 1, content: 'Test', type: 'question', start_time: undefined }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('ABC123');
+
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]?.start_time).toBeInstanceOf(Date);
+    });
+
+    it('should handle ISO string start_time', async () => {
+      const now = Date.now();
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { 
+            actionID: 1, 
+            content: 'Test', 
+            type: 'question', 
+            start_time: new Date(now - 3000).toISOString()
+          }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('ABC123');
+
+      expect(result.actions[0]?.start_time).toBe(mockSession.actions[0]?.start_time);
+      expect(result.timeMargins[1]).toBeGreaterThan(2.9);
+      expect(result.timeMargins[1]).toBeLessThan(3.1);
     });
   });
 });

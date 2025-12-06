@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import { randomUUID } from 'crypto';
-import { createSession, createSessionWithMode } from '../services/sessionService.js';
+import { createSession, createSessionWithMode, getActionContent, getActionsWithTimes } from '../services/sessionService.js';
 import '../../db/connection.js';
 // @ts-ignore - JS file without type definitions
 import Session from '../../db/session-schema.js';
@@ -293,6 +293,88 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
       message: 'Failed to add action', 
       error: error instanceof Error ? error.message : String(error) 
     });
+  }
+};
+
+/**
+ * GET /api/session/:sessionCode/:actionID
+ * Gets the content of a specific action by sessionCode and actionID
+ */
+export const getActionContentEndpoint = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionCode, actionID } = req.params;
+
+    if (!sessionCode) {
+      res.status(400).json({ error: 'sessionCode is required' });
+      return;
+    }
+
+    if (!actionID) {
+      res.status(400).json({ error: 'actionID is required' });
+      return;
+    }
+
+    // Parse actionID to integer
+    const numericActionID = parseInt(actionID, 10);
+    if (isNaN(numericActionID)) {
+      res.status(400).json({ error: 'actionID must be a valid number' });
+      return;
+    }
+
+    const content = await getActionContent(sessionCode, numericActionID);
+
+    res.json({
+      content,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Session not found') {
+        res.status(404).json({ error: 'Session not found' });
+        return;
+      }
+      if (error.message === 'Action not found') {
+        // Need to get sessionCode for the error response
+        const { sessionCode, actionID } = req.params;
+        const numericActionID = actionID ? parseInt(actionID, 10) : NaN;
+        res.status(404).json({ 
+          error: 'Action not found',
+          sessionCode: sessionCode || '',
+          actionID: isNaN(numericActionID) ? undefined : numericActionID
+        });
+        return;
+      }
+    }
+    console.error('Error fetching action content from database: ', error instanceof Error ? error.message : String(error));
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+};
+
+/**
+ * GET /api/session/:sessionCode/actions/times
+ * Gets all actionIDs and their start_time for a specific session, along with time margins
+ */
+export const getActionsWithTimesEndpoint = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionCode } = req.params;
+
+    if (!sessionCode) {
+      res.status(400).json({ error: 'sessionCode is required' });
+      return;
+    }
+
+    const result = await getActionsWithTimes(sessionCode);
+
+    res.json({
+      actions: result.actions,
+      timeMargins: result.timeMargins,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Session not found') {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+    console.error('Error fetching actionIDs and start times from database: ', error instanceof Error ? error.message : String(error));
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 };
 

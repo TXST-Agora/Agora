@@ -122,3 +122,157 @@ export const createSessionWithMode = async (options: {
   return session;
 };
 
+/**
+ * Calculates the time passed since a given start time
+ * @param startTime - The start time (Date object or ISO string)
+ * @returns Time passed in decimal seconds, or null if invalid
+ */
+export const getTimePassed = (startTime: Date | string | null | undefined): number | null => {
+  if (!startTime) {
+    return null;
+  }
+
+  // Accept either Date objects or ISO strings from MongoDB
+  const startDate = startTime instanceof Date ? startTime : new Date(startTime);
+
+  if (isNaN(startDate.getTime())) {
+    return null;
+  }
+
+  const now = new Date();
+  const milliseconds = now.getTime() - startDate.getTime();
+  // Convert milliseconds to decimal seconds (divide by 1000)
+  const seconds = milliseconds / 1000;
+  return seconds;
+};
+
+/**
+ * Formats the time passed since the start time to be human readable
+ * @param seconds - Time in decimal seconds
+ * @returns Formatted string like "2 days ago", "3 hours ago", or null if invalid
+ */
+export const formatTimePassed = (seconds: number | null): string | null => {
+  if (seconds == null) return null;
+
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+  } else if (hours > 0) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  } else {
+    return `${wholeSeconds} second${wholeSeconds !== 1 ? 's' : ''} ago`;
+  }
+};
+
+interface Action {
+  actionID?: number;
+  start_time?: Date | string;
+  content?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Creates a dictionary of actionID to time passed (margin)
+ * @param actions - Array of actions with actionID and start_time
+ * @returns Object where key is actionID and value is time passed in decimal seconds
+ */
+export const createActionTimeMarginDictionary = (actions: Action[] | undefined | null): Record<number, number> => {
+  const timeMarginDict: Record<number, number> = {};
+  
+  if (Array.isArray(actions)) {
+    actions.forEach(action => {
+      if (action.actionID !== undefined && action.actionID !== null && action.start_time) {
+        const timePassed = getTimePassed(action.start_time);
+        if (timePassed !== null) {
+          timeMarginDict[action.actionID] = timePassed; // time passed in decimal seconds
+        }
+      }
+    });
+  }
+  
+  return timeMarginDict;
+};
+
+/**
+ * Gets the content of a specific action by sessionCode and actionID
+ * @param sessionCode - The session code or sessionID
+ * @param actionID - The action ID
+ * @returns The action content, or null if not found
+ * @throws Error if session not found
+ */
+export const getActionContent = async (sessionCode: string, actionID: number): Promise<string | null> => {
+  // Find session by sessionCode or sessionID
+  const session = await Session.findOne({
+    $or: [
+      { sessionCode: sessionCode },
+      { sessionID: sessionCode }
+    ]
+  });
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  // Find the action with matching actionID
+  let foundAction: Action | null = null;
+  if (Array.isArray(session.actions)) {
+    foundAction = session.actions.find((action: Action) => action.actionID === actionID) || null;
+  }
+
+  if (!foundAction) {
+    throw new Error('Action not found');
+  }
+
+  return foundAction.content || null;
+};
+
+/**
+ * Gets all actionIDs and their start_time for a specific session, along with time margins
+ * @param sessionCode - The session code or sessionID
+ * @returns Object containing actions array and timeMargins dictionary
+ * @throws Error if session not found
+ */
+export const getActionsWithTimes = async (sessionCode: string): Promise<{
+  actions: Array<{ actionID: number; start_time: Date | string }>;
+  timeMargins: Record<number, number>;
+}> => {
+  // Find session by sessionCode or sessionID
+  const session = await Session.findOne({
+    $or: [
+      { sessionCode: sessionCode },
+      { sessionID: sessionCode }
+    ]
+  });
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  // Extract actionID and start_time for each action
+  const actions: Array<{ actionID: number; start_time: Date | string }> = [];
+  if (Array.isArray(session.actions)) {
+    session.actions.forEach((action: Action) => {
+      if (action.actionID !== undefined && action.actionID !== null) {
+        actions.push({
+          actionID: action.actionID,
+          start_time: action.start_time || new Date(),
+        });
+      }
+    });
+  }
+
+  // Create dictionary with actionID as key and time passed (margin) as value
+  const timeMargins = createActionTimeMarginDictionary(session.actions);
+
+  return {
+    actions,
+    timeMargins,
+  };
+};
+
