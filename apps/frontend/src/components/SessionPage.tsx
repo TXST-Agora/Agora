@@ -39,9 +39,9 @@ const SessionPage = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     // Helper function to get available bounds for positioning elements
-    // Accounts for navbar at top (88px) and FAB area at bottom (140px)
+    // Accounts for navbar at top (64px) and FAB area at bottom (140px)
     const getAvailableBounds = useCallback(() => {
-        const navbarHeight = 88; // Top padding for navbar
+        const navbarHeight = 64; // Navbar height
         const bottomPadding = 140; // Bottom padding for FAB area
         const rect = containerRef.current?.getBoundingClientRect();
         const containerWidth = rect ? rect.width : window.innerWidth;
