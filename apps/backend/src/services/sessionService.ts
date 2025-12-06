@@ -122,3 +122,216 @@ export const createSessionWithMode = async (options: {
   return session;
 };
 
+/**
+ * Calculates the time passed since a given start time
+ * @param startTime - The start time (Date object or ISO string)
+ * @returns Time passed in decimal seconds, or null if invalid
+ */
+export const getTimePassed = (startTime: Date | string | null | undefined): number | null => {
+  if (!startTime) {
+    return null;
+  }
+
+  // Accept either Date objects or ISO strings from MongoDB
+  const startDate = startTime instanceof Date ? startTime : new Date(startTime);
+
+  if (isNaN(startDate.getTime())) {
+    return null;
+  }
+
+  const now = new Date();
+  const milliseconds = now.getTime() - startDate.getTime();
+  // Convert milliseconds to decimal seconds (divide by 1000)
+  const seconds = milliseconds / 1000;
+  return seconds;
+};
+
+/**
+ * Formats the time passed since the start time to be human readable
+ * @param seconds - Time in decimal seconds
+ * @returns Formatted string like "2 days ago", "3 hours ago", or null if invalid
+ */
+export const formatTimePassed = (seconds: number | null): string | null => {
+  if (seconds == null) return null;
+
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+  } else if (hours > 0) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  } else {
+    return `${wholeSeconds} second${wholeSeconds !== 1 ? 's' : ''} ago`;
+  }
+};
+
+interface Action {
+  actionID?: number;
+  start_time?: Date | string;
+  content?: string;
+  size?: number;
+  color?: string;
+  timeMargin?: number | null; // Time difference in seconds from hostStartTime to action start_time
+  [key: string]: unknown;
+}
+
+/**
+ * Creates a dictionary of actionID to time passed (margin)
+ * @param actions - Array of actions with actionID and start_time
+ * @returns Object where key is actionID and value is time passed in decimal seconds
+ */
+export const createActionTimeMarginDictionary = (actions: Action[] | undefined | null): Record<number, number> => {
+  const timeMarginDict: Record<number, number> = {};
+  
+  if (Array.isArray(actions)) {
+    actions.forEach(action => {
+      if (action.actionID !== undefined && action.actionID !== null && action.start_time) {
+        const timePassed = getTimePassed(action.start_time);
+        if (timePassed !== null) {
+          timeMarginDict[action.actionID] = timePassed; // time passed in decimal seconds
+        }
+      }
+    });
+  }
+  
+  return timeMarginDict;
+};
+
+/**
+ * Gets the content of a specific action by sessionCode and actionID
+ * @param sessionCode - The session code or sessionID
+ * @param actionID - The action ID
+ * @returns The action content, or null if not found
+ * @throws Error if session not found
+ */
+export const getActionContent = async (sessionCode: string, actionID: number): Promise<string | null> => {
+  // Find session by sessionCode or sessionID
+  const session = await Session.findOne({
+    $or: [
+      { sessionCode: sessionCode },
+      { sessionID: sessionCode }
+    ]
+  });
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  // Find the action with matching actionID
+  let foundAction: Action | null = null;
+  if (Array.isArray(session.actions)) {
+    foundAction = session.actions.find((action: Action) => action.actionID === actionID) || null;
+  }
+
+  if (!foundAction) {
+    throw new Error('Action not found');
+  }
+
+  return foundAction.content || null;
+};
+
+/**
+ * Gets all actionIDs with their timeMargin, size, and color for a specific session
+ * @param sessionCode - The session code or sessionID
+ * @returns Array of actions with actionID, timeMargin, size, and color
+ * @throws Error if session not found
+ */
+export const getActions = async (sessionCode: string): Promise<{
+  actions: Array<{ actionID: number; timeMargin: number | null; size?: number; color?: string }>;
+}> => {
+  // Find session by sessionCode or sessionID
+  const session = await Session.findOne({
+    $or: [
+      { sessionCode: sessionCode },
+      { sessionID: sessionCode }
+    ]
+  });
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  // Extract actionID, timeMargin, size, and color for each action
+  const actions: Array<{ actionID: number; timeMargin: number | null; size?: number; color?: string }> = [];
+  
+  if (Array.isArray(session.actions)) {
+    session.actions.forEach((action: Action) => {
+      if (action.actionID !== undefined && action.actionID !== null) {
+        actions.push({
+          actionID: action.actionID,
+          timeMargin: action.timeMargin ?? null,
+          size: action.size,
+          color: action.color,
+        });
+      }
+    });
+  }
+
+  return {
+    actions,
+  };
+};
+
+/**
+ * Updates timeMargin for all actions in all sessions
+ * Calculates the time difference between current time and each action's start_time
+ * Stores the result in seconds in the timeMargin property of each action
+ */
+export const updateAllActionTimeMargins = async (): Promise<void> => {
+  try {
+    const currentTime = new Date();
+
+    // Find all active sessions (hostEndTime is null) with actions
+    const sessions = await Session.find({
+      actions: { $exists: true, $ne: [] },
+      $or: [
+        { hostEndTime: { $exists: false } },
+        { hostEndTime: null }
+      ]
+    });
+
+    if (sessions.length === 0) {
+      return;
+    }
+
+    // Update each session's actions with timeMargin
+    for (const session of sessions) {
+      if (!session.actions || session.actions.length === 0) {
+        continue;
+      }
+
+      // Update each action with its timeMargin
+      const updatedActions = session.actions.map((action: Action) => {
+        if (!action.start_time) {
+          return { ...action, timeMargin: null };
+        }
+
+        const actionStartTime = action.start_time instanceof Date
+          ? action.start_time
+          : new Date(action.start_time);
+
+        // Calculate time difference in seconds: current time - action start time
+        const timeMargin = (currentTime.getTime() - actionStartTime.getTime()) / 1000;
+
+        return {
+          ...action,
+          timeMargin
+        };
+      });
+
+      // Update the session with modified actions
+      session.actions = updatedActions;
+      session.markModified('actions');
+      await session.save();
+    }
+  } catch (error) {
+    console.error('Error updating action time margins:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { type Request, type Response } from 'express';
-import { createSessionCode } from '../../controllers/sessionController.js';
+import { createSessionCode, getActionContentEndpoint, getActionsEndpoint } from '../../controllers/sessionController.js';
 import * as sessionService from '../../services/sessionService.js';
 
 // Mock the session service
 vi.mock('../../services/sessionService.js', () => ({
   createSession: vi.fn(),
+  getActionContent: vi.fn(),
+  getActions: vi.fn(),
 }));
 
 describe('sessionController', () => {
@@ -22,6 +24,7 @@ describe('sessionController', () => {
     
     mockRequest = {
       body: {},
+      params: {},
     };
     
     mockResponse = {
@@ -333,6 +336,350 @@ describe('sessionController', () => {
         message: 'Failed to generate session code',
         error: 'Database error',
       });
+    });
+  });
+
+  describe('getActionContentEndpoint', () => {
+    it('should return action content successfully', async () => {
+      vi.mocked(sessionService.getActionContent).mockResolvedValue('Test question content');
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: '1',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(sessionService.getActionContent).toHaveBeenCalledWith('ABC123', 1);
+      expect(mockJson).toHaveBeenCalledWith({
+        content: 'Test question content',
+      });
+      expect(mockStatus).not.toHaveBeenCalled(); // Should use default 200
+    });
+
+    it('should return 400 if sessionCode is missing', async () => {
+      mockRequest.params = {
+        actionID: '1',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'sessionCode is required',
+      });
+      expect(sessionService.getActionContent).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 if actionID is missing', async () => {
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'actionID is required',
+      });
+      expect(sessionService.getActionContent).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 if actionID is not a valid number', async () => {
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: 'invalid',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'actionID must be a valid number',
+      });
+      expect(sessionService.getActionContent).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 if actionID is completely non-numeric', async () => {
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: 'abc',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'actionID must be a valid number',
+      });
+      expect(sessionService.getActionContent).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 if session is not found', async () => {
+      vi.mocked(sessionService.getActionContent).mockRejectedValue(
+        new Error('Session not found')
+      );
+
+      mockRequest.params = {
+        sessionCode: 'NONEXISTENT',
+        actionID: '1',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Session not found',
+      });
+    });
+
+    it('should return 404 if action is not found', async () => {
+      vi.mocked(sessionService.getActionContent).mockRejectedValue(
+        new Error('Action not found')
+      );
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: '999',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Action not found',
+        sessionCode: 'ABC123',
+        actionID: 999,
+      });
+    });
+
+    it('should return 500 for other errors', async () => {
+      vi.mocked(sessionService.getActionContent).mockRejectedValue(
+        new Error('Database connection error')
+      );
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: '1',
+      };
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Database connection error',
+      });
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle null content', async () => {
+      vi.mocked(sessionService.getActionContent).mockResolvedValue(null);
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: '1',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalledWith({
+        content: null,
+      });
+    });
+
+    it('should parse actionID correctly from string', async () => {
+      vi.mocked(sessionService.getActionContent).mockResolvedValue('Content');
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+        actionID: '42',
+      };
+
+      await getActionContentEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(sessionService.getActionContent).toHaveBeenCalledWith('ABC123', 42);
+    });
+  });
+
+  describe('getActionsEndpoint', () => {
+    it('should return actions with timeMargin successfully', async () => {
+      const mockResult = {
+        actions: [
+          { actionID: 1, timeMargin: 125.5, size: 48, color: '#16a34a' },
+          { actionID: 2, timeMargin: 130.2, size: 48, color: '#16a34a' },
+        ],
+      };
+
+      vi.mocked(sessionService.getActions).mockResolvedValue(mockResult);
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+      };
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(sessionService.getActions).toHaveBeenCalledWith('ABC123');
+      expect(mockJson).toHaveBeenCalledWith({
+        actions: mockResult.actions,
+      });
+      expect(mockStatus).not.toHaveBeenCalled(); // Should use default 200
+    });
+
+    it('should return 400 if sessionCode is missing', async () => {
+      mockRequest.params = {};
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'sessionCode is required',
+      });
+      expect(sessionService.getActions).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 if sessionCode is empty string', async () => {
+      mockRequest.params = {
+        sessionCode: '',
+      };
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'sessionCode is required',
+      });
+      expect(sessionService.getActions).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 if session is not found', async () => {
+      vi.mocked(sessionService.getActions).mockRejectedValue(
+        new Error('Session not found')
+      );
+
+      mockRequest.params = {
+        sessionCode: 'NONEXISTENT',
+      };
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Session not found',
+      });
+    });
+
+    it('should return 500 for other errors', async () => {
+      vi.mocked(sessionService.getActions).mockRejectedValue(
+        new Error('Database connection error')
+      );
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+      };
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Database connection error',
+      });
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle empty actions array', async () => {
+      const mockResult = {
+        actions: [],
+      };
+
+      vi.mocked(sessionService.getActions).mockResolvedValue(mockResult);
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+      };
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockJson).toHaveBeenCalledWith({
+        actions: [],
+      });
+    });
+
+    it('should handle non-Error exceptions', async () => {
+      vi.mocked(sessionService.getActions).mockRejectedValue('String error');
+
+      mockRequest.params = {
+        sessionCode: 'ABC123',
+      };
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await getActionsEndpoint(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'String error',
+      });
+
+      consoleSpy.mockRestore();
     });
   });
 });

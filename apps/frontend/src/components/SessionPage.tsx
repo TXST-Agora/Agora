@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import './SessionPage.css';
 
@@ -16,6 +16,8 @@ type SessionData = {
         type: string;
         content: string;
         start_time: string;
+        size?: number;
+        color?: string;
     }>;
 };
 
@@ -31,9 +33,28 @@ const SessionPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string>("");
 
-    const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number }>>([]);
+    const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>>([]);
     const [maxActionID, setMaxActionID] = useState<number>(0);
     const containerRef = useRef<HTMLDivElement | null>(null);
+
+    // Function to fetch actions with times
+    const getActions = useCallback(async () => {
+        if (!sessionCode) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/actions/times`);
+            if (!response.ok) {
+                console.error("Failed to fetch actions with times");
+                return;
+            }
+
+            const data = await response.json();
+            console.log("Actions with times:", data);
+            // You can process the data here if needed
+        } catch (error) {
+            console.error("Error fetching actions with times:", error);
+        }
+    }, [sessionCode]);
 
     // Load session data on mount
     useEffect(() => {
@@ -83,6 +104,8 @@ const SessionPage = () => {
                             submitTime: action.start_time,
                             x: Math.floor(Math.random() * (maxLeft + 1)),
                             y: Math.floor(Math.random() * (maxTop + 1)),
+                            size: action.size,
+                            color: action.color,
                         };
                     });
                     setSubmittedElements(elements);
@@ -99,6 +122,18 @@ const SessionPage = () => {
 
         loadSession();
     }, [sessionCode]);
+
+    // Poll for actions with times every 5 seconds
+    useEffect(() => {
+        if (!sessionCode) return;
+
+        const interval = setInterval(() => {
+            getActions();
+        }, 5000); // 5 seconds
+
+        // Cleanup interval on unmount
+        return () => clearInterval(interval);
+    }, [sessionCode, getActions]);
 
     const submitElement = async (type: string) => {
         const trimmed = input.trim();
@@ -186,7 +221,17 @@ const SessionPage = () => {
             }
 
             // store position (even if overlapping after attempts)
-            setSubmittedElements((s) => [...s, { id, actionID: backendActionID, type: type, content: trimmed, submitTime: date.toISOString(), x: left, y: top }]);
+            setSubmittedElements((s) => [...s, { 
+                id, 
+                actionID: backendActionID, 
+                type: type, 
+                content: trimmed, 
+                submitTime: date.toISOString(), 
+                x: left, 
+                y: top,
+                size: data.action?.size,
+                color: data.action?.color,
+            }]);
             
             // Update maxActionID for next submission
             setMaxActionID(backendActionID);
@@ -288,7 +333,13 @@ const SessionPage = () => {
                         className="fab-element"
                         title={`${f.content}`}
                         aria-label={`submitted-${f.type}-${f.actionID}`}
-                        style={{ left: f.x != null ? `${f.x}px` : undefined, top: f.y != null ? `${f.y}px` : undefined }}
+                        style={{ 
+                            left: f.x != null ? `${f.x}px` : undefined, 
+                            top: f.y != null ? `${f.y}px` : undefined,
+                            width: f.size != null ? `${f.size}px` : undefined,
+                            height: f.size != null ? `${f.size}px` : undefined,
+                            backgroundColor: f.color || undefined,
+                        }}
                         id={String(f.actionID)}
                     >
                         {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
