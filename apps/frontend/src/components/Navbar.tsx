@@ -1,4 +1,5 @@
 import "./Navbar.css";
+import { AgoraLogo } from "./AgoraLogo";
 
 const Navbar = () => {
 
@@ -14,7 +15,8 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
-          Agora
+          <AgoraLogo width={36} height={36} className="navbar-logo" />
+          <span className="navbar-brand-text">Agora</span>
         </div>
         <button 
           className="signin-btn btn-nav" 
