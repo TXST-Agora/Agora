@@ -174,6 +174,9 @@ interface Action {
   actionID?: number;
   start_time?: Date | string;
   content?: string;
+  size?: number;
+  color?: string;
+  timeMargin?: number | null; // Time difference in seconds from hostStartTime to action start_time
   [key: string]: unknown;
 }
 
@@ -233,14 +236,13 @@ export const getActionContent = async (sessionCode: string, actionID: number): P
 };
 
 /**
- * Gets all actionIDs and their start_time for a specific session, along with time margins
+ * Gets all actionIDs with their timeMargin, size, and color for a specific session
  * @param sessionCode - The session code or sessionID
- * @returns Object containing actions array and timeMargins dictionary
+ * @returns Array of actions with actionID, timeMargin, size, and color
  * @throws Error if session not found
  */
 export const getActionsWithTimes = async (sessionCode: string): Promise<{
-  actions: Array<{ actionID: number; start_time: Date | string }>;
-  timeMargins: Record<number, number>;
+  actions: Array<{ actionID: number; timeMargin: number | null; size?: number; color?: string }>;
 }> => {
   // Find session by sessionCode or sessionID
   const session = await Session.findOne({
@@ -254,25 +256,82 @@ export const getActionsWithTimes = async (sessionCode: string): Promise<{
     throw new Error('Session not found');
   }
 
-  // Extract actionID and start_time for each action
-  const actions: Array<{ actionID: number; start_time: Date | string }> = [];
+  // Extract actionID, timeMargin, size, and color for each action
+  const actions: Array<{ actionID: number; timeMargin: number | null; size?: number; color?: string }> = [];
+  
   if (Array.isArray(session.actions)) {
     session.actions.forEach((action: Action) => {
       if (action.actionID !== undefined && action.actionID !== null) {
         actions.push({
           actionID: action.actionID,
-          start_time: action.start_time || new Date(),
+          timeMargin: action.timeMargin ?? null,
+          size: action.size,
+          color: action.color,
         });
       }
     });
   }
 
-  // Create dictionary with actionID as key and time passed (margin) as value
-  const timeMargins = createActionTimeMarginDictionary(session.actions);
-
   return {
     actions,
-    timeMargins,
   };
+};
+
+/**
+ * Updates timeMargin for all actions in all sessions
+ * Calculates the time difference between current time and each action's start_time
+ * Stores the result in seconds in the timeMargin property of each action
+ */
+export const updateAllActionTimeMargins = async (): Promise<void> => {
+  try {
+    const currentTime = new Date();
+
+    // Find all active sessions (hostEndTime is null) with actions
+    const sessions = await Session.find({
+      actions: { $exists: true, $ne: [] },
+      $or: [
+        { hostEndTime: { $exists: false } },
+        { hostEndTime: null }
+      ]
+    });
+
+    if (sessions.length === 0) {
+      return;
+    }
+
+    // Update each session's actions with timeMargin
+    for (const session of sessions) {
+      if (!session.actions || session.actions.length === 0) {
+        continue;
+      }
+
+      // Update each action with its timeMargin
+      const updatedActions = session.actions.map((action: Action) => {
+        if (!action.start_time) {
+          return { ...action, timeMargin: null };
+        }
+
+        const actionStartTime = action.start_time instanceof Date
+          ? action.start_time
+          : new Date(action.start_time);
+
+        // Calculate time difference in seconds: current time - action start time
+        const timeMargin = (currentTime.getTime() - actionStartTime.getTime()) / 1000;
+
+        return {
+          ...action,
+          timeMargin
+        };
+      });
+
+      // Update the session with modified actions
+      session.actions = updatedActions;
+      session.markModified('actions');
+      await session.save();
+    }
+  } catch (error) {
+    console.error('Error updating action time margins:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
 };
 

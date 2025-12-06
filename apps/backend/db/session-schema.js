@@ -11,6 +11,7 @@ const sessionSchema = new Schema ({
     mode: String, // New field for the new endpoint
     startTime: Date,
     hostStartTime: Date, // New field for the new endpoint
+    hostEndTime: Date, // Nullable field - when set, session is ended
     endTime: Date,
     actions: { type: [Schema.Types.Mixed], default: [] } // New field for the new endpoint
 },

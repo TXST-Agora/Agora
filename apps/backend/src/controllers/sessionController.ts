@@ -268,6 +268,11 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    // Calculate initial size and color based on session mode
+    // Default values for normal mode
+    let initialSize = 48;
+    let initialColor = '#16a34a'; // green-600
+
     // Create new action with actionID from frontend
     const newAction = {
       id: randomUUID(),
@@ -275,6 +280,8 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
       type,
       content: trimmedContent,
       start_time: new Date(),
+      size: initialSize,
+      color: initialColor,
     };
 
     // Add action to session
@@ -282,6 +289,8 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
       session.actions = [];
     }
     session.actions.push(newAction);
+    // Mark actions array as modified to ensure Mongoose saves nested changes
+    session.markModified('actions');
     await session.save();
 
     res.status(201).json({ 
@@ -351,7 +360,7 @@ export const getActionContentEndpoint = async (req: Request, res: Response): Pro
 
 /**
  * GET /api/session/:sessionCode/actions/times
- * Gets all actionIDs and their start_time for a specific session, along with time margins
+ * Gets all actionIDs with their timeMargin, size, and color for a specific session
  */
 export const getActionsWithTimesEndpoint = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -366,7 +375,6 @@ export const getActionsWithTimesEndpoint = async (req: Request, res: Response): 
 
     res.json({
       actions: result.actions,
-      timeMargins: result.timeMargins,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Session not found') {
