@@ -6,16 +6,19 @@ import {
   formatTimePassed,
   createActionTimeMarginDictionary,
   getActionContent,
-  getActionsWithTimes
+  getActionsWithTimes,
+  updateAllActionTimeMargins
 } from '../../services/sessionService.js';
 
 // Mock the database connection and schema
 vi.mock('../../../db/connection.js', () => ({}));
 
 // Use vi.hoisted() to create mocks that can be used in both the mock factory and tests
-const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
+const { mockFindOne, mockFind, mockSave, mockMarkModified, MockSession } = vi.hoisted(() => {
   const mockFindOne = vi.fn();
+  const mockFind = vi.fn();
   const mockSave = vi.fn();
+  const mockMarkModified = vi.fn();
   
   // Create a class that can be used as a constructor
   class MockSession {
@@ -26,6 +29,8 @@ const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
     public description: string;
     public sessionType: string;
     public startTime: Date;
+    public hostStartTime?: Date;
+    public hostEndTime?: Date | null;
     public actions?: Array<any>;
     
     constructor(data: any) {
@@ -35,7 +40,13 @@ const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
       this.description = data.description;
       this.sessionType = data.sessionType;
       this.startTime = data.startTime;
+      this.hostStartTime = data.hostStartTime;
+      this.hostEndTime = data.hostEndTime;
       this.actions = data.actions;
+    }
+    
+    markModified(field: string) {
+      mockMarkModified(field);
     }
     
     save() {
@@ -43,9 +54,10 @@ const { mockFindOne, mockSave, MockSession } = vi.hoisted(() => {
     }
     
     static findOne: ReturnType<typeof vi.fn> = mockFindOne;
+    static find: ReturnType<typeof vi.fn> = mockFind;
   }
   
-  return { mockFindOne, mockSave, MockSession };
+  return { mockFindOne, mockFind, mockSave, mockMarkModified, MockSession };
 });
 
 vi.mock('../../../db/session-schema.js', () => ({
@@ -56,6 +68,7 @@ describe('sessionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSave.mockResolvedValue(undefined);
+    mockMarkModified.mockImplementation(() => {});
   });
 
   describe('generateSessionCode', () => {
@@ -473,8 +486,7 @@ describe('sessionService', () => {
   });
 
   describe('getActionsWithTimes', () => {
-    it('should return actions and time margins', async () => {
-      const now = Date.now();
+    it('should return actions with timeMargin, size, and color', async () => {
       const mockSession = {
         sessionCode: 'ABC123',
         actions: [
@@ -482,13 +494,19 @@ describe('sessionService', () => {
             actionID: 1, 
             content: 'Question 1', 
             type: 'question', 
-            start_time: new Date(now - 5000) // 5 seconds ago
+            start_time: new Date(),
+            timeMargin: 5.5,
+            size: 48,
+            color: '#16a34a'
           },
           { 
             actionID: 2, 
             content: 'Comment 1', 
             type: 'comment', 
-            start_time: new Date(now - 10000) // 10 seconds ago
+            start_time: new Date(),
+            timeMargin: 10.2,
+            size: 48,
+            color: '#16a34a'
           }
         ]
       };
@@ -506,15 +524,11 @@ describe('sessionService', () => {
 
       expect(result.actions).toHaveLength(2);
       expect(result.actions[0]?.actionID).toBe(1);
+      expect(result.actions[0]?.timeMargin).toBe(5.5);
+      expect(result.actions[0]?.size).toBe(48);
+      expect(result.actions[0]?.color).toBe('#16a34a');
       expect(result.actions[1]?.actionID).toBe(2);
-      expect(result.timeMargins).toHaveProperty('1');
-      expect(result.timeMargins).toHaveProperty('2');
-      
-      // Time margins should be in seconds, not milliseconds
-      expect(result.timeMargins[1]).toBeGreaterThan(4.9);
-      expect(result.timeMargins[1]).toBeLessThan(5.1);
-      expect(result.timeMargins[2]).toBeGreaterThan(9.9);
-      expect(result.timeMargins[2]).toBeLessThan(10.1);
+      expect(result.actions[1]?.timeMargin).toBe(10.2);
     });
 
     it('should find session by sessionID if sessionCode not found', async () => {
@@ -551,7 +565,6 @@ describe('sessionService', () => {
       const result = await getActionsWithTimes('ABC123');
 
       expect(result.actions).toHaveLength(0);
-      expect(result.timeMargins).toEqual({});
     });
 
     it('should skip actions without actionID', async () => {
@@ -572,24 +585,7 @@ describe('sessionService', () => {
       expect(result.actions[0]?.actionID).toBe(1);
     });
 
-    it('should use current date as default for actions without start_time', async () => {
-      const mockSession = {
-        sessionCode: 'ABC123',
-        actions: [
-          { actionID: 1, content: 'Test', type: 'question', start_time: undefined }
-        ]
-      };
-
-      mockFindOne.mockResolvedValue(mockSession);
-
-      const result = await getActionsWithTimes('ABC123');
-
-      expect(result.actions).toHaveLength(1);
-      expect(result.actions[0]?.start_time).toBeInstanceOf(Date);
-    });
-
-    it('should handle ISO string start_time', async () => {
-      const now = Date.now();
+    it('should handle actions with null timeMargin', async () => {
       const mockSession = {
         sessionCode: 'ABC123',
         actions: [
@@ -597,7 +593,8 @@ describe('sessionService', () => {
             actionID: 1, 
             content: 'Test', 
             type: 'question', 
-            start_time: new Date(now - 3000).toISOString()
+            start_time: new Date(),
+            timeMargin: null
           }
         ]
       };
@@ -606,9 +603,153 @@ describe('sessionService', () => {
 
       const result = await getActionsWithTimes('ABC123');
 
-      expect(result.actions[0]?.start_time).toBe(mockSession.actions[0]?.start_time);
-      expect(result.timeMargins[1]).toBeGreaterThan(2.9);
-      expect(result.timeMargins[1]).toBeLessThan(3.1);
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]?.timeMargin).toBeNull();
+    });
+
+    it('should handle actions without timeMargin property', async () => {
+      const mockSession = {
+        sessionCode: 'ABC123',
+        actions: [
+          { 
+            actionID: 1, 
+            content: 'Test', 
+            type: 'question', 
+            start_time: new Date()
+          }
+        ]
+      };
+
+      mockFindOne.mockResolvedValue(mockSession);
+
+      const result = await getActionsWithTimes('ABC123');
+
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]?.timeMargin).toBeNull();
+    });
+  });
+
+  describe('updateAllActionTimeMargins', () => {
+    it('should update timeMargin for all actions in active sessions', async () => {
+      const now = Date.now();
+      const action1StartTime = new Date(now - 5000); // 5 seconds ago
+      const action2StartTime = new Date(now - 10000); // 10 seconds ago
+
+      const mockSession1 = new MockSession({
+        sessionCode: 'ABC123',
+        hostEndTime: null,
+        actions: [
+          {
+            actionID: 1,
+            content: 'Question 1',
+            type: 'question',
+            start_time: action1StartTime,
+            timeMargin: null
+          },
+          {
+            actionID: 2,
+            content: 'Comment 1',
+            type: 'comment',
+            start_time: action2StartTime,
+            timeMargin: null
+          }
+        ]
+      });
+
+      mockFind.mockResolvedValue([mockSession1]);
+
+      await updateAllActionTimeMargins();
+
+      expect(mockFind).toHaveBeenCalledWith({
+        actions: { $exists: true, $ne: [] },
+        $or: [
+          { hostEndTime: { $exists: false } },
+          { hostEndTime: null }
+        ]
+      });
+
+      expect(mockMarkModified).toHaveBeenCalledWith('actions');
+      expect(mockSave).toHaveBeenCalledTimes(1);
+
+      // Verify timeMargin was calculated (approximately 5 and 10 seconds)
+      const updatedActions = mockSession1.actions;
+      expect(updatedActions).toBeDefined();
+      expect(updatedActions?.[0]?.timeMargin).toBeGreaterThan(4.9);
+      expect(updatedActions?.[0]?.timeMargin).toBeLessThan(5.1);
+      expect(updatedActions?.[1]?.timeMargin).toBeGreaterThan(9.9);
+      expect(updatedActions?.[1]?.timeMargin).toBeLessThan(10.1);
+    });
+
+    it('should skip sessions with hostEndTime set', async () => {
+      const mockSession = new MockSession({
+        sessionCode: 'ENDED123',
+        hostEndTime: new Date(),
+        actions: [
+          {
+            actionID: 1,
+            content: 'Question',
+            type: 'question',
+            start_time: new Date()
+          }
+        ]
+      });
+
+      mockFind.mockResolvedValue([]);
+
+      await updateAllActionTimeMargins();
+
+      expect(mockSave).not.toHaveBeenCalled();
+    });
+
+    it('should skip sessions without actions', async () => {
+      const mockSession = new MockSession({
+        sessionCode: 'NOACTIONS',
+        hostEndTime: null,
+        actions: []
+      });
+
+      mockFind.mockResolvedValue([mockSession]);
+
+      await updateAllActionTimeMargins();
+
+      expect(mockSave).not.toHaveBeenCalled();
+    });
+
+    it('should handle actions without start_time', async () => {
+      const mockSession = new MockSession({
+        sessionCode: 'ABC123',
+        hostEndTime: null,
+        actions: [
+          {
+            actionID: 1,
+            content: 'Question',
+            type: 'question',
+            start_time: null
+          }
+        ]
+      });
+
+      mockFind.mockResolvedValue([mockSession]);
+
+      await updateAllActionTimeMargins();
+
+      expect(mockMarkModified).toHaveBeenCalledWith('actions');
+      expect(mockSave).toHaveBeenCalled();
+      expect(mockSession.actions?.[0]?.timeMargin).toBeNull();
+    });
+
+    it('should handle empty sessions array', async () => {
+      mockFind.mockResolvedValue([]);
+
+      await updateAllActionTimeMargins();
+
+      expect(mockSave).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully', async () => {
+      mockFind.mockRejectedValue(new Error('Database error'));
+
+      await expect(updateAllActionTimeMargins()).rejects.toThrow('Database error');
     });
   });
 });

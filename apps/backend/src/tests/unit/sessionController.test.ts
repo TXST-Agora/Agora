@@ -536,16 +536,12 @@ describe('sessionController', () => {
   });
 
   describe('getActionsWithTimesEndpoint', () => {
-    it('should return actions and time margins successfully', async () => {
+    it('should return actions with timeMargin successfully', async () => {
       const mockResult = {
         actions: [
-          { actionID: 1, start_time: new Date('2024-01-01T00:00:00Z') },
-          { actionID: 2, start_time: new Date('2024-01-01T00:00:05Z') },
+          { actionID: 1, timeMargin: 125.5, size: 48, color: '#16a34a' },
+          { actionID: 2, timeMargin: 130.2, size: 48, color: '#16a34a' },
         ],
-        timeMargins: {
-          1: 125.5, // seconds
-          2: 130.2, // seconds
-        },
       };
 
       vi.mocked(sessionService.getActionsWithTimes).mockResolvedValue(mockResult);
@@ -562,7 +558,6 @@ describe('sessionController', () => {
       expect(sessionService.getActionsWithTimes).toHaveBeenCalledWith('ABC123');
       expect(mockJson).toHaveBeenCalledWith({
         actions: mockResult.actions,
-        timeMargins: mockResult.timeMargins,
       });
       expect(mockStatus).not.toHaveBeenCalled(); // Should use default 200
     });
@@ -647,7 +642,6 @@ describe('sessionController', () => {
     it('should handle empty actions array', async () => {
       const mockResult = {
         actions: [],
-        timeMargins: {},
       };
 
       vi.mocked(sessionService.getActionsWithTimes).mockResolvedValue(mockResult);
@@ -663,7 +657,6 @@ describe('sessionController', () => {
 
       expect(mockJson).toHaveBeenCalledWith({
         actions: [],
-        timeMargins: {},
       });
     });
 
