@@ -241,7 +241,7 @@ export const getActionContent = async (sessionCode: string, actionID: number): P
  * @returns Array of actions with actionID, timeMargin, size, and color
  * @throws Error if session not found
  */
-export const getActionsWithTimes = async (sessionCode: string): Promise<{
+export const getActions = async (sessionCode: string): Promise<{
   actions: Array<{ actionID: number; timeMargin: number | null; size?: number; color?: string }>;
 }> => {
   // Find session by sessionCode or sessionID

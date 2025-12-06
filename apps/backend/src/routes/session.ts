@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsWithTimesEndpoint } from '../controllers/sessionController.js';
+import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -25,7 +25,7 @@ router.post('/:sessionCode/action', addSessionAction);
  * GET /api/session/:sessionCode/actions/times
  * Gets all actionIDs and their start_time for a specific session, along with time margins
  */
-router.get('/:sessionCode/actions/times', getActionsWithTimesEndpoint);
+router.get('/:sessionCode/actions/times', getActionsEndpoint);
 
 /**
  * GET /api/session/:sessionCode/:actionID

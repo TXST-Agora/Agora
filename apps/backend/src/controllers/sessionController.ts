@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import { randomUUID } from 'crypto';
-import { createSession, createSessionWithMode, getActionContent, getActionsWithTimes } from '../services/sessionService.js';
+import { createSession, createSessionWithMode, getActionContent, getActions } from '../services/sessionService.js';
 import '../../db/connection.js';
 // @ts-ignore - JS file without type definitions
 import Session from '../../db/session-schema.js';
@@ -207,9 +207,11 @@ export const getSession = async (req: Request, res: Response): Promise<void> => 
  * Request body should contain: { type: string, content: string }
  */
 export const addSessionAction = async (req: Request, res: Response): Promise<void> => {
+  // Extract variables early so they're available in catch block
+  const { sessionCode } = req.params;
+  const { type, content, actionID } = req.body;
+  
   try {
-    const { sessionCode } = req.params;
-    const { type, content, actionID } = req.body;
 
     // Validate required fields
     if (!type || typeof type !== 'string') {
@@ -288,16 +290,37 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
     if (!session.actions) {
       session.actions = [];
     }
-    session.actions.push(newAction);
+    // Reassign the entire array to ensure Mongoose detects the change
+    // This is more reliable than push() with Schema.Types.Mixed
+    session.actions = [...session.actions, newAction];
     // Mark actions array as modified to ensure Mongoose saves nested changes
     session.markModified('actions');
-    await session.save();
+    
+    // Save the session and verify it was saved
+    const savedSession = await session.save();
+    
+    // Verify the action was actually saved
+    if (!savedSession.actions || !savedSession.actions.some((a: any) => a.id === newAction.id)) {
+      console.error('Action was not saved to database:', { sessionCode, newAction });
+      res.status(500).json({ 
+        message: 'Failed to save action to database', 
+        error: 'Action was not persisted' 
+      });
+      return;
+    }
+
+    console.log('Action successfully saved:', { type, actionID: numericActionID, sessionCode });
 
     res.status(201).json({ 
       message: 'Action added', 
       action: newAction 
     });
   } catch (error) {
+    console.error('Error adding action to session:', error instanceof Error ? error.message : String(error), { 
+      sessionCode: sessionCode || 'unknown', 
+      type: type || 'unknown', 
+      actionID: actionID || 'unknown' 
+    });
     res.status(500).json({ 
       message: 'Failed to add action', 
       error: error instanceof Error ? error.message : String(error) 
@@ -362,7 +385,7 @@ export const getActionContentEndpoint = async (req: Request, res: Response): Pro
  * GET /api/session/:sessionCode/actions/times
  * Gets all actionIDs with their timeMargin, size, and color for a specific session
  */
-export const getActionsWithTimesEndpoint = async (req: Request, res: Response): Promise<void> => {
+export const getActionsEndpoint = async (req: Request, res: Response): Promise<void> => {
   try {
     const { sessionCode } = req.params;
 
@@ -371,7 +394,7 @@ export const getActionsWithTimesEndpoint = async (req: Request, res: Response): 
       return;
     }
 
-    const result = await getActionsWithTimes(sessionCode);
+    const result = await getActions(sessionCode);
 
     res.json({
       actions: result.actions,

@@ -38,7 +38,7 @@ const SessionPage = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     // Function to fetch actions with times
-    const getActionsWithTimes = useCallback(async () => {
+    const getActions = useCallback(async () => {
         if (!sessionCode) return;
 
         try {
@@ -128,12 +128,12 @@ const SessionPage = () => {
         if (!sessionCode) return;
 
         const interval = setInterval(() => {
-            getActionsWithTimes();
+            getActions();
         }, 5000); // 5 seconds
 
         // Cleanup interval on unmount
         return () => clearInterval(interval);
-    }, [sessionCode, getActionsWithTimes]);
+    }, [sessionCode, getActions]);
 
     const submitElement = async (type: string) => {
         const trimmed = input.trim();

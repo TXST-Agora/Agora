@@ -6,7 +6,7 @@ import {
   formatTimePassed,
   createActionTimeMarginDictionary,
   getActionContent,
-  getActionsWithTimes,
+  getActions,
   updateAllActionTimeMargins
 } from '../../services/sessionService.js';
 
@@ -485,7 +485,7 @@ describe('sessionService', () => {
     });
   });
 
-  describe('getActionsWithTimes', () => {
+  describe('getActions', () => {
     it('should return actions with timeMargin, size, and color', async () => {
       const mockSession = {
         sessionCode: 'ABC123',
@@ -513,7 +513,7 @@ describe('sessionService', () => {
 
       mockFindOne.mockResolvedValue(mockSession);
 
-      const result = await getActionsWithTimes('ABC123');
+      const result = await getActions('ABC123');
 
       expect(mockFindOne).toHaveBeenCalledWith({
         $or: [
@@ -542,7 +542,7 @@ describe('sessionService', () => {
 
       mockFindOne.mockResolvedValue(mockSession);
 
-      const result = await getActionsWithTimes('XYZ789');
+      const result = await getActions('XYZ789');
 
       expect(result.actions).toHaveLength(1);
       expect(result.actions[0]?.actionID).toBe(1);
@@ -551,7 +551,7 @@ describe('sessionService', () => {
     it('should throw error when session not found', async () => {
       mockFindOne.mockResolvedValue(null);
 
-      await expect(getActionsWithTimes('NONEXISTENT')).rejects.toThrow('Session not found');
+      await expect(getActions('NONEXISTENT')).rejects.toThrow('Session not found');
     });
 
     it('should handle empty actions array', async () => {
@@ -562,7 +562,7 @@ describe('sessionService', () => {
 
       mockFindOne.mockResolvedValue(mockSession);
 
-      const result = await getActionsWithTimes('ABC123');
+      const result = await getActions('ABC123');
 
       expect(result.actions).toHaveLength(0);
     });
@@ -579,7 +579,7 @@ describe('sessionService', () => {
 
       mockFindOne.mockResolvedValue(mockSession);
 
-      const result = await getActionsWithTimes('ABC123');
+      const result = await getActions('ABC123');
 
       expect(result.actions).toHaveLength(1);
       expect(result.actions[0]?.actionID).toBe(1);
@@ -601,7 +601,7 @@ describe('sessionService', () => {
 
       mockFindOne.mockResolvedValue(mockSession);
 
-      const result = await getActionsWithTimes('ABC123');
+      const result = await getActions('ABC123');
 
       expect(result.actions).toHaveLength(1);
       expect(result.actions[0]?.timeMargin).toBeNull();
@@ -622,7 +622,7 @@ describe('sessionService', () => {
 
       mockFindOne.mockResolvedValue(mockSession);
 
-      const result = await getActionsWithTimes('ABC123');
+      const result = await getActions('ABC123');
 
       expect(result.actions).toHaveLength(1);
       expect(result.actions[0]?.timeMargin).toBeNull();

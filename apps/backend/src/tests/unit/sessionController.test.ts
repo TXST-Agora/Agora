@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { type Request, type Response } from 'express';
-import { createSessionCode, getActionContentEndpoint, getActionsWithTimesEndpoint } from '../../controllers/sessionController.js';
+import { createSessionCode, getActionContentEndpoint, getActionsEndpoint } from '../../controllers/sessionController.js';
 import * as sessionService from '../../services/sessionService.js';
 
 // Mock the session service
 vi.mock('../../services/sessionService.js', () => ({
   createSession: vi.fn(),
   getActionContent: vi.fn(),
-  getActionsWithTimes: vi.fn(),
+  getActions: vi.fn(),
 }));
 
 describe('sessionController', () => {
@@ -535,7 +535,7 @@ describe('sessionController', () => {
     });
   });
 
-  describe('getActionsWithTimesEndpoint', () => {
+  describe('getActionsEndpoint', () => {
     it('should return actions with timeMargin successfully', async () => {
       const mockResult = {
         actions: [
@@ -544,18 +544,18 @@ describe('sessionController', () => {
         ],
       };
 
-      vi.mocked(sessionService.getActionsWithTimes).mockResolvedValue(mockResult);
+      vi.mocked(sessionService.getActions).mockResolvedValue(mockResult);
 
       mockRequest.params = {
         sessionCode: 'ABC123',
       };
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
 
-      expect(sessionService.getActionsWithTimes).toHaveBeenCalledWith('ABC123');
+      expect(sessionService.getActions).toHaveBeenCalledWith('ABC123');
       expect(mockJson).toHaveBeenCalledWith({
         actions: mockResult.actions,
       });
@@ -565,7 +565,7 @@ describe('sessionController', () => {
     it('should return 400 if sessionCode is missing', async () => {
       mockRequest.params = {};
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
@@ -574,7 +574,7 @@ describe('sessionController', () => {
       expect(mockJson).toHaveBeenCalledWith({
         error: 'sessionCode is required',
       });
-      expect(sessionService.getActionsWithTimes).not.toHaveBeenCalled();
+      expect(sessionService.getActions).not.toHaveBeenCalled();
     });
 
     it('should return 400 if sessionCode is empty string', async () => {
@@ -582,7 +582,7 @@ describe('sessionController', () => {
         sessionCode: '',
       };
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
@@ -591,11 +591,11 @@ describe('sessionController', () => {
       expect(mockJson).toHaveBeenCalledWith({
         error: 'sessionCode is required',
       });
-      expect(sessionService.getActionsWithTimes).not.toHaveBeenCalled();
+      expect(sessionService.getActions).not.toHaveBeenCalled();
     });
 
     it('should return 404 if session is not found', async () => {
-      vi.mocked(sessionService.getActionsWithTimes).mockRejectedValue(
+      vi.mocked(sessionService.getActions).mockRejectedValue(
         new Error('Session not found')
       );
 
@@ -603,7 +603,7 @@ describe('sessionController', () => {
         sessionCode: 'NONEXISTENT',
       };
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
@@ -615,7 +615,7 @@ describe('sessionController', () => {
     });
 
     it('should return 500 for other errors', async () => {
-      vi.mocked(sessionService.getActionsWithTimes).mockRejectedValue(
+      vi.mocked(sessionService.getActions).mockRejectedValue(
         new Error('Database connection error')
       );
 
@@ -625,7 +625,7 @@ describe('sessionController', () => {
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
@@ -644,13 +644,13 @@ describe('sessionController', () => {
         actions: [],
       };
 
-      vi.mocked(sessionService.getActionsWithTimes).mockResolvedValue(mockResult);
+      vi.mocked(sessionService.getActions).mockResolvedValue(mockResult);
 
       mockRequest.params = {
         sessionCode: 'ABC123',
       };
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
@@ -661,7 +661,7 @@ describe('sessionController', () => {
     });
 
     it('should handle non-Error exceptions', async () => {
-      vi.mocked(sessionService.getActionsWithTimes).mockRejectedValue('String error');
+      vi.mocked(sessionService.getActions).mockRejectedValue('String error');
 
       mockRequest.params = {
         sessionCode: 'ABC123',
@@ -669,7 +669,7 @@ describe('sessionController', () => {
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      await getActionsWithTimesEndpoint(
+      await getActionsEndpoint(
         mockRequest as Request,
         mockResponse as Response
       );
