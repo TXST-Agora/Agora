@@ -35,6 +35,9 @@ const SessionPage = () => {
     const [sessionData, setSessionData] = useState<SessionData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string>("");
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedElement, setSelectedElement] = useState<{ id: string; actionID: number; type: string; content: string; submitTime: string } | null>(null);
+    const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
 
     const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>>([]);
     const [maxActionID, setMaxActionID] = useState<number>(0);
@@ -1136,6 +1139,31 @@ const SessionPage = () => {
         setShowNoSpaceModal(false);
     };
 
+    const openDetailModal = (element: { id: string; actionID: number; type: string; content: string; submitTime: string }, fabElement?: Element) => {
+        setSelectedElement(element);
+        
+        if (fabElement) {
+            const rect = fabElement.getBoundingClientRect();
+            const containerRect = containerRef.current?.getBoundingClientRect();
+            
+            if (containerRect) {
+                // Position popup above the FAB, relative to the container
+                setPopupPosition({
+                    x: rect.left - containerRect.left + rect.width / 2,
+                    y: rect.top - containerRect.top - 20, // 20px above the FAB
+                });
+            }
+        }
+        
+        setShowDetailModal(true);
+    };
+
+    const closeDetailModal = () => {
+        setShowDetailModal(false);
+        setSelectedElement(null);
+        setPopupPosition(null);
+    };
+
     if (isLoading) {
         return (
             <div className="session-page" ref={containerRef}>
@@ -1253,6 +1281,25 @@ const SessionPage = () => {
                         </button>
                     );
                 })}
+                {submittedElements.map((f) => (
+                    <button
+                        key={f.id}
+                        className="fab-element"
+                        title={`${f.content}`}
+                        aria-label={`submitted-${f.type}-${f.actionID}`}
+                        style={{ 
+                            left: f.x != null ? `${f.x}px` : undefined, 
+                            top: f.y != null ? `${f.y}px` : undefined,
+                            width: f.size != null ? `${f.size}px` : undefined,
+                            height: f.size != null ? `${f.size}px` : undefined,
+                            backgroundColor: f.color || undefined,
+                        }}
+                        id={String(f.actionID)}
+                        onClick={(e) => openDetailModal(f, e.currentTarget)}
+                    >
+                        {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
+                    </button>
+                ))}
             </div>
                 <div
                     className= {`modal-overlay ${showAskModal ? "visible" : ""}`}
@@ -1429,6 +1476,43 @@ const SessionPage = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <div
+                    className={`detail-popup-overlay ${showDetailModal ? "visible" : ""}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="View element details"
+                    onClick={closeDetailModal}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Escape') closeDetailModal();
+                    }}
+                >
+                    {selectedElement && popupPosition && (
+                        <div 
+                            className={`detail-popup ${showDetailModal ? "visible" : ""}`}
+                            style={{ 
+                                left: `${popupPosition.x}px`, 
+                                top: `${popupPosition.y}px`,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="detail-popup-header">
+                                <h2>
+                                    {selectedElement.type === "question" ? "Question" : "Comment"}
+                                </h2>
+                                <span className={`detail-popup-icon ${selectedElement.type}`}>
+                                    {selectedElement.type === "question" ? "?" : "🗩"}
+                                </span>
+                            </div>
+                            <div className="detail-popup-content">
+                                <p>{selectedElement.content}</p>
+                            </div>
+                            <div className="detail-popup-meta">
+                                <small>Submitted: {new Date(selectedElement.submitTime).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 
         
