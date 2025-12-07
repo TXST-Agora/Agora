@@ -522,3 +522,18 @@
     color: var(--text-secondary, rgba(0, 0, 0, 0.6));
     font-size: 11px;
 }
+
+.element-remove{
+    color: rgb(218, 37, 37);
+    border-color:rgb(218, 37, 37);
+    border-radius: 3px;
+    border-width: thin;
+    background: white;
+}
+
+.element-remove:hover{
+    color: white;
+    background: rgb(218, 37, 37);
+    transition: all 0.2s ease;
+
+}

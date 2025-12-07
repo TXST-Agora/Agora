@@ -1549,9 +1549,7 @@ const SessionPage = () => {
                                 <h2>
                                     {selectedElement.type === "question" ? "Question" : "Comment"}
                                 </h2>
-                                <span className={`detail-popup-icon ${selectedElement.type}`}>
-                                    {selectedElement.type === "question" ? "?" : "🗩"}
-                                </span>
+                                <button className="element-remove"> Remove </button>
                             </div>
                             <div className="detail-popup-content">
                                 <p>{selectedElement.content}</p>
