@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { act } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 // Mock useNavigate
@@ -17,8 +16,16 @@ vi.mock('react-router-dom', async () => {
 import JoinPage from '../components/JoinPage';
 
 describe('JoinPage', () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     mockNavigate.mockClear();
+    globalThis.fetch = vi.fn() as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
   });
 
   it('renders heading, input, and submit button', () => {
@@ -80,8 +87,15 @@ describe('JoinPage', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('shows "Verifying..." for a valid code, then navigates to session page', async () => {
+  it('shows "Verifying..." for a valid code, then navigates to session page on success', async () => {
     const user = userEvent.setup();
+    let resolveFetch: (value: Response) => void;
+    const fetchPromise = new Promise<Response>((resolve) => {
+      resolveFetch = resolve;
+    });
+    
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockReturnValueOnce(fetchPromise);
+
     render(
       <MemoryRouter>
         <JoinPage />
@@ -92,20 +106,126 @@ describe('JoinPage', () => {
     await user.type(input, '123456');
     await user.click(screen.getByRole('button', { name: /verify/i }));
 
+    // Wait for button to show "Verifying..." and be disabled
+    await waitFor(() => {
+      const button = screen.getByRole('button', { name: /verifying/i });
+      expect(button).toBeDisabled();
+    });
+    
     // Confirmation/status should appear
-    const status = screen.getByRole('status');
-    expect(status).toHaveTextContent(/verifying/i);
-
-    // Wait for the setTimeout to fire
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 650));
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(/verifying/i);
     });
 
-    // Should navigate to session page
-    expect(mockNavigate).toHaveBeenCalledWith('/forum/123456');
+    // Verify the API call was made
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/session/123456')
+    );
 
-    // Status message should be cleared
-    const msgContainer = screen.getByRole('region', { name: /enter session code/i });
-    expect(within(msgContainer).queryByText(/verifying/i)).not.toBeInTheDocument();
+    // Resolve the fetch to trigger navigation
+    resolveFetch!({
+      ok: true,
+      status: 200,
+    } as Response);
+
+    // Should navigate to session page
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/forum/123456');
+    });
+  });
+
+  it('shows error message when session is not found (404)', async () => {
+    const user = userEvent.setup();
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+
+    render(
+      <MemoryRouter>
+        <JoinPage />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByLabelText(/six digit code/i);
+    await user.type(input, '123456');
+    await user.click(screen.getByRole('button', { name: /verify/i }));
+
+    // Wait for the API call to complete
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/session/123456')
+      );
+    });
+
+    // Should show error message
+    await waitFor(() => {
+      const error = screen.getByRole('alert');
+      expect(error).toHaveTextContent(/session not found/i);
+    });
+
+    // Should not navigate
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    // Button should be enabled again
+    expect(screen.getByRole('button', { name: /verify/i })).not.toBeDisabled();
+  });
+
+  it('shows error message on network or other API errors', async () => {
+    const user = userEvent.setup();
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
+
+    render(
+      <MemoryRouter>
+        <JoinPage />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByLabelText(/six digit code/i);
+    await user.type(input, '123456');
+    await user.click(screen.getByRole('button', { name: /verify/i }));
+
+    // Wait for the API call to complete
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalled();
+    });
+
+    // Should show error message
+    await waitFor(() => {
+      const error = screen.getByRole('alert');
+      expect(error).toHaveTextContent(/failed to verify session/i);
+    });
+
+    // Should not navigate
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('shows error message when fetch throws an error', async () => {
+    const user = userEvent.setup();
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('Network error')
+    );
+
+    render(
+      <MemoryRouter>
+        <JoinPage />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByLabelText(/six digit code/i);
+    await user.type(input, '123456');
+    await user.click(screen.getByRole('button', { name: /verify/i }));
+
+    // Wait for the error to be handled
+    await waitFor(() => {
+      const error = screen.getByRole('alert');
+      expect(error).toHaveTextContent(/failed to verify session/i);
+    });
+
+    // Should not navigate
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

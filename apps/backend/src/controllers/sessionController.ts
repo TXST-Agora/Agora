@@ -409,3 +409,100 @@ export const getActionsEndpoint = async (req: Request, res: Response): Promise<v
   }
 };
 
+/**
+ * PATCH /api/session/:sessionCode/action/:actionID
+ * Updates the size and/or color of a specific action
+ * Request body should contain: { size: number, color?: string }
+ * - size is required and must be a positive number
+ * - color is optional and will be updated if provided
+ * Used by sizePulse mode to update element sizes and colorShift mode to update element colors
+ */
+export const updateActionIcon = async (req: Request, res: Response): Promise<void> => {
+  // Extract variables early so they're available in catch block
+  const { sessionCode, actionID } = req.params;
+  const { size, color } = req.body;
+
+  try {
+    if (!sessionCode) {
+      res.status(400).json({ error: 'sessionCode is required' });
+      return;
+    }
+
+    if (!actionID) {
+      res.status(400).json({ error: 'actionID is required' });
+      return;
+    }
+
+    // Parse actionID to integer
+    const numericActionID = parseInt(actionID, 10);
+    if (isNaN(numericActionID)) {
+      res.status(400).json({ error: 'actionID must be a valid number' });
+      return;
+    }
+
+    // Validate size
+    if (size === undefined || size === null) {
+      res.status(400).json({ error: 'size is required' });
+      return;
+    }
+
+    const numericSize = typeof size === 'string' ? parseFloat(size) : Number(size);
+    if (isNaN(numericSize) || numericSize < 0) {
+      res.status(400).json({ error: 'size must be a positive number' });
+      return;
+    }
+
+    // Find the session
+    const session = await Session.findOne({ sessionCode });
+    if (!session) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    // Find the action
+    if (!session.actions || !Array.isArray(session.actions)) {
+      res.status(404).json({ error: 'Action not found' });
+      return;
+    }
+
+    const actionIndex = session.actions.findIndex((a: any) => a.actionID === numericActionID);
+    if (actionIndex === -1) {
+      res.status(404).json({ error: 'Action not found' });
+      return;
+    }
+
+    // Update the action
+    const action = session.actions[actionIndex] as any;
+    const updatedAction = {
+      ...action,
+      size: numericSize,
+      ...(color !== undefined && color !== null ? { color } : {}),
+    };
+
+    // Reassign the entire array to ensure Mongoose detects the change
+    session.actions = [
+      ...session.actions.slice(0, actionIndex),
+      updatedAction,
+      ...session.actions.slice(actionIndex + 1),
+    ];
+    session.markModified('actions');
+    await session.save();
+
+    console.log('Action icon updated:', { sessionCode, actionID: numericActionID, size: numericSize, color });
+
+    res.status(200).json({
+      message: 'Action updated',
+      action: updatedAction,
+    });
+  } catch (error) {
+    console.error('Error updating action icon:', error instanceof Error ? error.message : String(error), {
+      sessionCode: sessionCode || 'unknown',
+      actionID: actionID || 'unknown',
+      size: size || 'unknown',
+    });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+

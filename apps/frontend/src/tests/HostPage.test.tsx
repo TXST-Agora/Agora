@@ -239,7 +239,7 @@ describe("Host Page", () => {
       sizePulseRadio.click();
     });
     
-    expect(screen.getByText(/grow and shrink/i)).toBeInTheDocument();
+    expect(screen.getByText(/gradually grow over time/i)).toBeInTheDocument();
   });
 
   it("sends correct mode to API when mode is selected", async () => {

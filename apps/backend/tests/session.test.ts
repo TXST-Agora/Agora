@@ -519,6 +519,78 @@ describe('Session API Endpoints', () => {
       expect(session?.actions[1].actionID).toBe(2);
     });
 
+    it('should add multiple question actions to the same session', async () => {
+      const questions = [
+        { content: 'What is React?', actionID: 1 },
+        { content: 'How does TypeScript work?', actionID: 2 },
+        { content: 'What is the difference between let and const?', actionID: 3 }
+      ];
+
+      // Submit each question
+      for (const question of questions) {
+        const response = await request(app)
+          .post(`/api/session/${testSessionCode}/action`)
+          .send({
+            type: 'question',
+            content: question.content,
+            actionID: question.actionID,
+          })
+          .expect(201);
+
+        expect(response.body.action.type).toBe('question');
+        expect(response.body.action.content).toBe(question.content);
+        expect(response.body.action.actionID).toBe(question.actionID);
+      }
+
+      // Verify all questions are in database
+      const session = await Session.findOne({ sessionCode: testSessionCode });
+      expect(session?.actions).toHaveLength(3);
+      
+      questions.forEach((question, index) => {
+        expect(session?.actions[index].type).toBe('question');
+        expect(session?.actions[index].content).toBe(question.content);
+        expect(session?.actions[index].actionID).toBe(question.actionID);
+        expect(session?.actions[index]).toHaveProperty('id');
+        expect(session?.actions[index]).toHaveProperty('start_time');
+      });
+    });
+
+    it('should add multiple comment actions to the same session', async () => {
+      const comments = [
+        { content: 'Great explanation!', actionID: 1 },
+        { content: 'This is very helpful.', actionID: 2 },
+        { content: 'I have a follow-up question.', actionID: 3 }
+      ];
+
+      // Submit each comment
+      for (const comment of comments) {
+        const response = await request(app)
+          .post(`/api/session/${testSessionCode}/action`)
+          .send({
+            type: 'comment',
+            content: comment.content,
+            actionID: comment.actionID,
+          })
+          .expect(201);
+
+        expect(response.body.action.type).toBe('comment');
+        expect(response.body.action.content).toBe(comment.content);
+        expect(response.body.action.actionID).toBe(comment.actionID);
+      }
+
+      // Verify all comments are in database
+      const session = await Session.findOne({ sessionCode: testSessionCode });
+      expect(session?.actions).toHaveLength(3);
+      
+      comments.forEach((comment, index) => {
+        expect(session?.actions[index].type).toBe('comment');
+        expect(session?.actions[index].content).toBe(comment.content);
+        expect(session?.actions[index].actionID).toBe(comment.actionID);
+        expect(session?.actions[index]).toHaveProperty('id');
+        expect(session?.actions[index]).toHaveProperty('start_time');
+      });
+    });
+
     it('should trim content whitespace', async () => {
       const response = await request(app)
         .post(`/api/session/${testSessionCode}/action`)

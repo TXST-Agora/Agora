@@ -86,7 +86,35 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    background: transparent;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 16px;
+}
+.fab-option .circle-ask {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 16px;
+}
+.fab-option .circle-comment {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     color: #ffffff;
     font-weight: 700;
     font-size: 16px;
@@ -154,6 +182,82 @@
 
 .visually-hidden { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 
+/* Validation error messages */
+.message {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.error-message {
+    color: #b45309;
+}
+
+/* Error banner for submission errors */
+.error-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    animation: slideInDown 300ms ease-out;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.error-banner .error-message {
+    color: #991b1b;
+    font-size: 0.9rem;
+    font-weight: 600;
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.error-retry {
+    padding: 0.4rem 0.9rem;
+    background: #dc2626;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 140ms ease;
+}
+
+.error-retry:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+}
+
+.error-retry:active {
+    transform: translateY(0);
+}
+
+.error-retry:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
+}
+
+.error-retry:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* generated fabs (created when a question is submitted) */
 .generated-fabs {
     position: absolute; /* positioned inside .session-page */
@@ -176,6 +280,7 @@
     box-shadow: 0 8px 20px rgba(0,0,0,0.18);
     cursor: pointer;
     animation: popIn 0.6s ease both;
+    transition: width 8s ease-in-out, height 8s ease-in-out, box-shadow 8s ease-in-out, left 0.5s ease-out, top 0.5s ease-out, background 2s ease, background-color 2s ease;
 
 }
 .circle.small {
@@ -185,7 +290,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    background: transparent;
     color: #ffffff;
     font-weight: 700;
     font-size: 25px;
@@ -197,3 +302,17 @@
 @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; }}
 @keyframes fadeOut  { from { opacity: 1; } to { opacity: 0; }}
 @keyframes popIn    {from {transform: scale(0.5); } 50% {transform: scale(1.5); }to{transform: scale(1);}}
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 14px 35px rgba(0,0,0,0.35);
+    }
+}
+
+.generated-fabs .fab-element.pulse {
+    animation: popIn 0.6s ease both, pulse 2s ease-in-out 0.6s infinite;
+}

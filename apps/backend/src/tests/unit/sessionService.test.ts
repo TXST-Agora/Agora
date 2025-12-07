@@ -487,6 +487,10 @@ describe('sessionService', () => {
 
   describe('getActions', () => {
     it('should return actions with timeMargin, size, and color', async () => {
+      const now = Date.now();
+      const action1StartTime = new Date(now - 5500); // 5.5 seconds ago
+      const action2StartTime = new Date(now - 10200); // 10.2 seconds ago
+      
       const mockSession = {
         sessionCode: 'ABC123',
         actions: [
@@ -494,8 +498,7 @@ describe('sessionService', () => {
             actionID: 1, 
             content: 'Question 1', 
             type: 'question', 
-            start_time: new Date(),
-            timeMargin: 5.5,
+            start_time: action1StartTime,
             size: 48,
             color: '#16a34a'
           },
@@ -503,8 +506,7 @@ describe('sessionService', () => {
             actionID: 2, 
             content: 'Comment 1', 
             type: 'comment', 
-            start_time: new Date(),
-            timeMargin: 10.2,
+            start_time: action2StartTime,
             size: 48,
             color: '#16a34a'
           }
@@ -524,11 +526,15 @@ describe('sessionService', () => {
 
       expect(result.actions).toHaveLength(2);
       expect(result.actions[0]?.actionID).toBe(1);
-      expect(result.actions[0]?.timeMargin).toBe(5.5);
+      // timeMargin is calculated dynamically, should be approximately 5.5 seconds
+      expect(result.actions[0]?.timeMargin).toBeGreaterThan(5.4);
+      expect(result.actions[0]?.timeMargin).toBeLessThan(5.6);
       expect(result.actions[0]?.size).toBe(48);
       expect(result.actions[0]?.color).toBe('#16a34a');
       expect(result.actions[1]?.actionID).toBe(2);
-      expect(result.actions[1]?.timeMargin).toBe(10.2);
+      // timeMargin is calculated dynamically, should be approximately 10.2 seconds
+      expect(result.actions[1]?.timeMargin).toBeGreaterThan(10.1);
+      expect(result.actions[1]?.timeMargin).toBeLessThan(10.3);
     });
 
     it('should find session by sessionID if sessionCode not found', async () => {
@@ -585,7 +591,7 @@ describe('sessionService', () => {
       expect(result.actions[0]?.actionID).toBe(1);
     });
 
-    it('should handle actions with null timeMargin', async () => {
+    it('should handle actions with null timeMargin (timeMargin is recalculated from start_time)', async () => {
       const mockSession = {
         sessionCode: 'ABC123',
         actions: [
@@ -594,7 +600,7 @@ describe('sessionService', () => {
             content: 'Test', 
             type: 'question', 
             start_time: new Date(),
-            timeMargin: null
+            timeMargin: null // This is ignored, timeMargin is recalculated
           }
         ]
       };
@@ -604,10 +610,12 @@ describe('sessionService', () => {
       const result = await getActions('ABC123');
 
       expect(result.actions).toHaveLength(1);
-      expect(result.actions[0]?.timeMargin).toBeNull();
+      // timeMargin is recalculated dynamically from start_time, so it will be a number (approximately 0)
+      expect(result.actions[0]?.timeMargin).toBeGreaterThanOrEqual(0);
+      expect(result.actions[0]?.timeMargin).toBeLessThan(0.1);
     });
 
-    it('should handle actions without timeMargin property', async () => {
+    it('should handle actions without timeMargin property (timeMargin is calculated from start_time)', async () => {
       const mockSession = {
         sessionCode: 'ABC123',
         actions: [
@@ -625,7 +633,9 @@ describe('sessionService', () => {
       const result = await getActions('ABC123');
 
       expect(result.actions).toHaveLength(1);
-      expect(result.actions[0]?.timeMargin).toBeNull();
+      // timeMargin is calculated dynamically from start_time, so it will be a number (approximately 0)
+      expect(result.actions[0]?.timeMargin).toBeGreaterThanOrEqual(0);
+      expect(result.actions[0]?.timeMargin).toBeLessThan(0.1);
     });
   });
 

@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 describe('Navbar routing', () => {
@@ -36,7 +37,11 @@ describe('Navbar routing', () => {
   });
 
   it('sets window.location.href to / when Agora is clicked', async () => {
-    render(<Navbar />);
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
 
     const user = userEvent.setup();
     const brand = screen.getByText(/agora/i);
