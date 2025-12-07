@@ -22,6 +22,37 @@
     --host-accent-strong: #1f2937;         /* blue-800 */
     --host-accent-ghost: rgba(29,78,216,0.12);
     
+    /* Theme variables - light mode defaults */
+    --bg-color: var(--bg);
+    --text-color: var(--text);
+    --panel-bg: var(--surface);
+    --navbar-bg: var(--surface);
+    --fab-bg: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    --modal-bg: var(--surface);
+    --border-color: var(--border);
+  }
+  
+  /* Dark mode overrides */
+  body.dark {
+    --bg-color: #0f172a;
+    --text-color: #f1f5f9;
+    --panel-bg: #1e293b;
+    --navbar-bg: #1e293b;
+    --fab-bg: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    --modal-bg: #1e293b;
+    --border-color: #334155;
+    
+    /* Override existing variables for dark mode */
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: #334155;
+    --ring: #475569;
+    
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md: 0 10px 30px rgba(0,0,0,0.4);
   }
   
   /* --- Global font (makes navbar match exactly) --- */
