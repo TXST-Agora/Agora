@@ -534,6 +534,6 @@
 .element-remove:hover{
     color: white;
     background: rgb(218, 37, 37);
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
 
 }

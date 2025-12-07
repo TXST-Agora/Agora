@@ -1210,6 +1210,11 @@ const SessionPage = () => {
         setPopupPosition(null);
     };
 
+    const removeElement = (array: Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>,  itemIndex: number) => {
+    const arr = array.filter(element => element.actionID !== itemIndex);
+    setSubmittedElements(arr);
+}
+
     if (isLoading) {
         return (
             <div className="session-page" ref={containerRef}>
@@ -1549,7 +1554,10 @@ const SessionPage = () => {
                                 <h2>
                                     {selectedElement.type === "question" ? "Question" : "Comment"}
                                 </h2>
-                                <button className="element-remove"> Remove </button>
+                                <button className="element-remove" onClick={ () => {
+                                    removeElement(submittedElements, selectedElement.actionID); 
+                                    closeDetailModal();
+                                    }}> Remove </button>
                             </div>
                             <div className="detail-popup-content">
                                 <p>{selectedElement.content}</p>
