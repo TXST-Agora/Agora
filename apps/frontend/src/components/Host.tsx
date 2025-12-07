@@ -118,7 +118,7 @@ const Host = () => {
   const modeDescriptions: Record<SessionMode, string> = {
     normal: "Elements remain static.",
     colorShift: "Forum items gradually change hue over time.",
-    sizePulse: "Forum items gently grow and shrink over time.",
+    sizePulse: "Forum items gradually grow over time.",
   };
 
   const runSubmit = useCallback(async () => {

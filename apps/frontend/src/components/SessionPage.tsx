@@ -821,25 +821,31 @@ const SessionPage = () => {
             // Use the max actionID from loaded session data + 1, or start at 1 if no actions
             const actionID = maxActionID + 1;
 
+            const requestBody = {
+                type,
+                content: trimmed,
+                actionID: actionID,
+            };
+
+            console.log('Submitting action:', { type, actionID, sessionCode, contentLength: trimmed.length });
+
             // Call backend API to add action
             const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/action`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    type,
-                    content: trimmed,
-                    actionID: actionID,
-                }),
+                body: JSON.stringify(requestBody),
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: 'Failed to submit' }));
+                console.error('Failed to submit action:', { type, status: response.status, error: errorData });
                 throw new Error(errorData.message || 'Failed to submit');
             }
 
             const data = await response.json();
+            console.log('Action submitted successfully:', { type, actionID: data.action?.actionID, id: data.action?.id });
 
             // Success - add to local state for display
             // Use the UUID and actionID from backend response
@@ -1051,7 +1057,7 @@ const SessionPage = () => {
                         }}
                     >
                         <span className="label">Ask</span>
-                        <span className="circle small">?</span>
+                        <span className="circle-ask">?</span>
                     </button>
 
                     <button
@@ -1062,7 +1068,7 @@ const SessionPage = () => {
                         }}
                     >
                         <span className="label">Comment</span>
-                        <span className="circle small">✎</span>
+                        <span className="circle-comment">✎</span>
                     </button>
                 </div>
 
@@ -1104,7 +1110,7 @@ const SessionPage = () => {
                             }}
                             id={String(f.actionID)}
                         >
-                            {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
+                            {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">✎</span>}
                         </button>
                     );
                 })}

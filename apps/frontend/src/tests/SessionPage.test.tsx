@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -247,76 +247,164 @@ describe("SessionPage", () => {
                 });
             });
 
-            it('generates multiple FAB question elements on multiple submits', async () => {
-                // Mock POST action endpoints for both submissions
-                fetchMock
-                    .mockResolvedValueOnce({
-                        ok: true,
-                        json: async () => ({
-                            message: "Action added",
-                            action: {
-                                id: 'test-id-1',
-                                actionID: 1,
-                                type: 'question',
-                                content: 'First question?',
-                                start_time: new Date().toISOString()
-                            }
-                        }),
-                    })
-                    .mockResolvedValueOnce({
-                        ok: true,
-                        json: async () => ({
-                            message: "Action added",
-                            action: {
-                                id: 'test-id-2',
-                                actionID: 2,
-                                type: 'question',
-                                content: 'Second question?',
-                                start_time: new Date().toISOString()
-                            }
-                        }),
-                    });
+            it('generates multiple FAB question elements on multiple successful submits', async () => {
+                const questions = [
+                    { id: 'test-id-1', actionID: 1, content: 'What is React?' },
+                    { id: 'test-id-2', actionID: 2, content: 'How does TypeScript work?' },
+                    { id: 'test-id-3', actionID: 3, content: 'What is the difference between let and const?' }
+                ];
 
-                renderWithRouter();
+                // Track submitted action IDs for /actions/times responses
+                const submittedActionIDs = new Set<number>();
+                
+                // Store POST mock responses
+                const postResponses = questions.map((question) => ({
+                    ok: true,
+                    json: async () => {
+                        submittedActionIDs.add(question.actionID);
+                        return {
+                            message: "Action added",
+                            action: {
+                                id: question.id,
+                                actionID: question.actionID,
+                                type: 'question',
+                                content: question.content,
+                                start_time: new Date().toISOString()
+                            }
+                        };
+                    },
+                }));
+                
+                let postIndex = 0;
+                let hasUsedInitialSessionMock = false;
+                
+                // Use mockImplementation to handle both POST and GET requests
+                fetchMock.mockImplementation((url: string | Request | URL, init?: RequestInit) => {
+                    const urlString = typeof url === 'string' ? url : url.toString();
+                    const isPost = init?.method === 'POST';
+                    
+                    // Handle /actions/times GET requests
+                    if (urlString.includes('/actions/times')) {
+                        return Promise.resolve({
+                            ok: true,
+                            json: async () => ({
+                                actions: Array.from(submittedActionIDs).map(actionID => ({
+                                    actionID,
+                                    timeMargin: 0,
+                                    color: undefined
+                                }))
+                            }),
+                        });
+                    }
+                    
+                    // Handle POST /action requests
+                    if (isPost && urlString.includes('/action') && postIndex < postResponses.length) {
+                        return Promise.resolve(postResponses[postIndex++]);
+                    }
+                    
+                    // Handle initial GET /session request (from beforeEach)
+                    if (!hasUsedInitialSessionMock && urlString.includes(`/session/${mockSessionCode}`) && !isPost && !urlString.includes('/action')) {
+                        hasUsedInitialSessionMock = true;
+                        // This will be handled by the mockResolvedValueOnce from beforeEach
+                        // But since we're using mockImplementation, we need to handle it here
+                        return Promise.resolve({
+                            ok: true,
+                            json: async () => ({
+                                sessionCode: mockSessionCode,
+                                title: "Test Session",
+                                description: "Test Description",
+                                mode: "normal",
+                                hostStartTime: new Date().toISOString(),
+                                actions: []
+                            }),
+                        });
+                    }
+                    
+                    return Promise.reject(new Error(`Unexpected fetch: ${urlString}, method: ${init?.method || 'GET'}`));
+                });
+
+                const { container } = renderWithRouter();
+                
+                // Set up container dimensions so positioning logic works
+                const sessionPage = container.querySelector('.session-page') as HTMLElement;
+                if (sessionPage) {
+                    Object.defineProperty(sessionPage, 'offsetWidth', { value: 1920, configurable: true });
+                    Object.defineProperty(sessionPage, 'offsetHeight', { value: 1080, configurable: true });
+                    Object.defineProperty(sessionPage, 'getBoundingClientRect', {
+                        value: () => ({
+                            width: 1920,
+                            height: 1080,
+                            top: 0,
+                            left: 0,
+                            bottom: 1080,
+                            right: 1920,
+                            x: 0,
+                            y: 0,
+                            toJSON: () => {}
+                        }),
+                        configurable: true
+                    });
+                }
+
                 await waitFor(() => {
                     expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
                 });
-                
-                // First question
-                const fabButton = screen.getByLabelText(/Open actions/i);
-                fireEvent.click(fabButton);
-                const askButton = screen.getByText(/\?/i);
-                fireEvent.click(askButton);
-                
-                const textarea = screen.getByLabelText(/Type your question/i) as HTMLTextAreaElement;
-                fireEvent.change(textarea, { target: { value: 'First question?' } });
-                
-                let submitButton = screen.getAllByText(/Submit/)[0];
-                await fireEvent.click(submitButton);
-                
-                await waitFor(() => {
-                    const element1 = screen.getByLabelText(/submitted-question-1/i);
-                    expect(element1).toBeInTheDocument();
-                    expect(element1).toHaveAttribute('id', '1');
-                });
-                
-                // Second question
-                fireEvent.click(fabButton);
-                fireEvent.click(askButton);
-                
-                fireEvent.change(textarea, { target: { value: 'Second question?' } });
-                submitButton = screen.getAllByText(/Submit/)[0];
-                await fireEvent.click(submitButton);
-                
-                await waitFor(() => {
-                    const element1 = screen.getByLabelText(/submitted-question-1/i);
-                    const element2 = screen.getByLabelText(/submitted-question-2/i);
-                    expect(element1).toBeInTheDocument();
-                    expect(element1).toHaveAttribute('id', '1');
-                    expect(element2).toBeInTheDocument();
-                    expect(element2).toHaveAttribute('id', '2');
+
+                // Submit each question
+                for (let i = 0; i < questions.length; i++) {
+                    const question = questions[i];
+                    
+                    // Open FAB
+                    const fabButton = screen.getByLabelText(/Open actions/i);
+                    fireEvent.click(fabButton);
+                    
+                    // Click Ask button - need to find the one in fab-options, not the submitted FABs or modal
+                    // Find all "Ask" texts and get the one inside the fab-option button
+                    const askTexts = screen.getAllByText(/Ask/i);
+                    const askButton = askTexts
+                        .map(text => text.closest('button.fab-option'))
+                        .find(btn => btn !== null) as HTMLButtonElement | undefined;
+                    if (!askButton) {
+                        throw new Error('Ask button not found');
+                    }
+                    fireEvent.click(askButton);
+                    
+                    // Wait for modal to be visible
+                    await waitFor(() => {
+                        expect(screen.getByLabelText(/Ask a question dialog/i)).toBeVisible();
+                    });
+                    
+                    // Type question
+                    const textarea = screen.getByLabelText(/Type your question/i) as HTMLTextAreaElement;
+                    fireEvent.change(textarea, { target: { value: question.content } });
+                    
+                    // Submit
+                    const submitButton = screen.getAllByText(/Submit/)[0];
+                    await act(async () => {
+                        fireEvent.click(submitButton);
+                    });
+                    
+                    // Wait for modal to close
+                    await waitFor(() => {
+                        expect(screen.getByLabelText(/Ask a question dialog/i)).not.toHaveClass('visible');
+                    });
+                    
+                    // Wait for the element to appear
+                    await waitFor(() => {
+                        const element = screen.getByLabelText(new RegExp(`submitted-question-${question.actionID}`, 'i'));
+                        expect(element).toBeInTheDocument();
+                        expect(element).toHaveAttribute('id', String(question.actionID));
+                    }, { timeout: 3000 });
+                }
+
+                // Verify all questions are present
+                questions.forEach((question) => {
+                    const element = screen.getByLabelText(new RegExp(`submitted-question-${question.actionID}`, 'i'));
+                    expect(element).toBeInTheDocument();
+                    expect(element).toHaveAttribute('id', String(question.actionID));
                 });
             });
+           
         });
 
         describe("Comment Modal", () => {
@@ -519,78 +607,162 @@ describe("SessionPage", () => {
                 });
             });
 
-            it('generates multiple FAB comment elements on multiple submits', async () => {
-                // Mock POST action endpoints for both submissions
-                fetchMock
-                    .mockResolvedValueOnce({
-                        ok: true,
-                        json: async () => ({
-                            message: "Action added",
-                            action: {
-                                id: 'test-id-1',
-                                actionID: 1,
-                                type: 'comment',
-                                content: 'First comment',
-                                start_time: new Date().toISOString()
-                            }
-                        }),
-                    })
-                    .mockResolvedValueOnce({
-                        ok: true,
-                        json: async () => ({
-                            message: "Action added",
-                            action: {
-                                id: 'test-id-2',
-                                actionID: 2,
-                                type: 'comment',
-                                content: 'Second comment',
-                                start_time: new Date().toISOString()
-                            }
-                        }),
-                    });
+            it('generates multiple FAB comment elements on multiple successful submits', async () => {
+                const comments = [
+                    { id: 'test-id-1', actionID: 1, content: 'Great explanation!' },
+                    { id: 'test-id-2', actionID: 2, content: 'This is very helpful.' },
+                    { id: 'test-id-3', actionID: 3, content: 'I have a follow-up question.' }
+                ];
 
-                renderWithRouter();
+                // Track submitted action IDs for /actions/times responses
+                const submittedActionIDs = new Set<number>();
+                
+                // Store POST mock responses
+                const postResponses = comments.map((comment) => ({
+                    ok: true,
+                    json: async () => {
+                        submittedActionIDs.add(comment.actionID);
+                        return {
+                            message: "Action added",
+                            action: {
+                                id: comment.id,
+                                actionID: comment.actionID,
+                                type: 'comment',
+                                content: comment.content,
+                                start_time: new Date().toISOString()
+                            }
+                        };
+                    },
+                }));
+                
+                let postIndex = 0;
+                let hasUsedInitialSessionMock = false;
+                
+                // Use mockImplementation to handle both POST and GET requests
+                fetchMock.mockImplementation((url: string | Request | URL, init?: RequestInit) => {
+                    const urlString = typeof url === 'string' ? url : url.toString();
+                    const isPost = init?.method === 'POST';
+                    
+                    // Handle /actions/times GET requests
+                    if (urlString.includes('/actions/times')) {
+                        return Promise.resolve({
+                            ok: true,
+                            json: async () => ({
+                                actions: Array.from(submittedActionIDs).map(actionID => ({
+                                    actionID,
+                                    timeMargin: 0,
+                                    color: undefined
+                                }))
+                            }),
+                        });
+                    }
+                    
+                    // Handle POST /action requests
+                    if (isPost && urlString.includes('/action') && postIndex < postResponses.length) {
+                        return Promise.resolve(postResponses[postIndex++]);
+                    }
+                    
+                    // Handle initial GET /session request (from beforeEach)
+                    if (!hasUsedInitialSessionMock && urlString.includes(`/session/${mockSessionCode}`) && !isPost && !urlString.includes('/action')) {
+                        hasUsedInitialSessionMock = true;
+                        return Promise.resolve({
+                            ok: true,
+                            json: async () => ({
+                                sessionCode: mockSessionCode,
+                                title: "Test Session",
+                                description: "Test Description",
+                                mode: "normal",
+                                hostStartTime: new Date().toISOString(),
+                                actions: []
+                            }),
+                        });
+                    }
+                    
+                    return Promise.reject(new Error(`Unexpected fetch: ${urlString}, method: ${init?.method || 'GET'}`));
+                });
+
+                const { container } = renderWithRouter();
+                
+                // Set up container dimensions so positioning logic works
+                const sessionPage = container.querySelector('.session-page') as HTMLElement;
+                if (sessionPage) {
+                    Object.defineProperty(sessionPage, 'offsetWidth', { value: 1920, configurable: true });
+                    Object.defineProperty(sessionPage, 'offsetHeight', { value: 1080, configurable: true });
+                    Object.defineProperty(sessionPage, 'getBoundingClientRect', {
+                        value: () => ({
+                            width: 1920,
+                            height: 1080,
+                            top: 0,
+                            left: 0,
+                            bottom: 1080,
+                            right: 1920,
+                            x: 0,
+                            y: 0,
+                            toJSON: () => {}
+                        }),
+                        configurable: true
+                    });
+                }
+
                 await waitFor(() => {
                     expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
                 });
-                
-                // First comment
-                const fabButton = screen.getByLabelText(/Open actions/i);
-                fireEvent.click(fabButton);
-                const commentButton = screen.getByText(/✎/i);
-                fireEvent.click(commentButton);
-                
-                const textarea = screen.getByLabelText(/Type your comment/i) as HTMLTextAreaElement;
-                fireEvent.change(textarea, { target: { value: 'First comment' } });
-                
-                let submitButton = screen.getAllByText(/Submit/)[1];
-                await fireEvent.click(submitButton);
-                
-                await waitFor(() => {
-                    const element1 = screen.getByLabelText(/submitted-comment-1/i);
-                    expect(element1).toBeInTheDocument();
-                    expect(element1).toHaveAttribute('id', '1');
-                });
-                
-                // Second comment
-                fireEvent.click(screen.getByLabelText(/Open actions/i));
-                fireEvent.click(screen.getByText(/✎/i));
-                
-                fireEvent.change(textarea, { target: { value: 'Second comment' } });
-                submitButton = screen.getAllByText(/Submit/)[1];
-                await fireEvent.click(submitButton);
-                
-                await waitFor(() => {
-                    const element1 = screen.getByLabelText(/submitted-comment-1/i);
-                    const element2 = screen.getByLabelText(/submitted-comment-2/i);
-                    expect(element1).toBeInTheDocument();
-                    expect(element1).toHaveAttribute('id', '1');
-                    expect(element2).toBeInTheDocument();
-                    expect(element2).toHaveAttribute('id', '2');
+
+                // Submit each comment
+                for (let i = 0; i < comments.length; i++) {
+                    const comment = comments[i];
+                    
+                    // Open FAB
+                    const fabButton = screen.getByLabelText(/Open actions/i);
+                    fireEvent.click(fabButton);
+                    
+                    // Click Comment button - need to find the one in fab-options, not the submitted FABs or modal
+                    // Find all "Comment" texts and get the one inside the fab-option button
+                    const commentTexts = screen.getAllByText(/Comment/i);
+                    const commentButton = commentTexts
+                        .map(text => text.closest('button.fab-option'))
+                        .find(btn => btn !== null) as HTMLButtonElement | undefined;
+                    if (!commentButton) {
+                        throw new Error('Comment button not found');
+                    }
+                    fireEvent.click(commentButton);
+                    
+                    // Wait for modal to be visible
+                    await waitFor(() => {
+                        expect(screen.getByLabelText(/Leave a comment dialog/i)).toBeVisible();
+                    });
+                    
+                    // Type comment
+                    const textarea = screen.getByLabelText(/Type your comment/i) as HTMLTextAreaElement;
+                    fireEvent.change(textarea, { target: { value: comment.content } });
+                    
+                    // Submit
+                    const submitButton = screen.getAllByText(/Submit/)[1];
+                    await act(async () => {
+                        fireEvent.click(submitButton);
+                    });
+                    
+                    // Wait for modal to close
+                    await waitFor(() => {
+                        expect(screen.getByLabelText(/Leave a comment dialog/i)).not.toHaveClass('visible');
+                    });
+                    
+                    // Wait for the element to appear
+                    await waitFor(() => {
+                        const element = screen.getByLabelText(new RegExp(`submitted-comment-${comment.actionID}`, 'i'));
+                        expect(element).toBeInTheDocument();
+                        expect(element).toHaveAttribute('id', String(comment.actionID));
+                    }, { timeout: 3000 });
+                }
+
+                // Verify all comments are present
+                comments.forEach((comment) => {
+                    const element = screen.getByLabelText(new RegExp(`submitted-comment-${comment.actionID}`, 'i'));
+                    expect(element).toBeInTheDocument();
+                    expect(element).toHaveAttribute('id', String(comment.actionID));
                 });
             });
-
-            
+           
         });
 
     })
