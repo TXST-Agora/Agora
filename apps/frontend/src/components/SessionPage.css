@@ -371,7 +371,7 @@
 
 /* Detail popup (chat bubble style) */
 .detail-popup-overlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: -1;
     opacity: 0;
@@ -381,7 +381,7 @@
 
 .detail-popup-overlay.visible {
     opacity: 1;
-    z-index: 110;
+    z-index: 99;
     pointer-events: auto;
     background: rgba(0, 0, 0, 0.1);
 }
@@ -394,7 +394,6 @@
     border-radius: 12px;
     padding: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    transform: translate(-50%, -100%);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -406,17 +405,74 @@
     pointer-events: auto;
 }
 
-.detail-popup::after {
+/* Direction modifiers */
+.detail-popup.up {
+    transform: translate(-50%, -100%);
+}
+
+.detail-popup.down {
+    transform: translate(-50%, 0);
+}
+
+.detail-popup.left {
+    transform: translate(-100%, -50%);
+}
+
+.detail-popup.right {
+    transform: translate(0, -50%);
+}
+
+/* Pointer/arrow styles for each direction */
+.detail-popup.up::after {
     content: '';
     position: absolute;
     bottom: -8px;
-    left: 50%;
+    left: calc(50% + var(--arrow-offset-x, 0px));
     transform: translateX(-50%);
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
     border-top: 8px solid var(--card, #fff);
+}
+
+.detail-popup.down::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: calc(50% + var(--arrow-offset-x, 0px));
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid var(--card, #fff);
+}
+
+.detail-popup.left::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    top: calc(50% + var(--arrow-offset-y, 0px));
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 8px solid var(--card, #fff);
+}
+
+.detail-popup.right::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: calc(50% + var(--arrow-offset-y, 0px));
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid var(--card, #fff);
 }
 
 .detail-popup-header {

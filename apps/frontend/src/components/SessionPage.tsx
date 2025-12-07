@@ -37,7 +37,7 @@ const SessionPage = () => {
     const [loadError, setLoadError] = useState<string>("");
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedElement, setSelectedElement] = useState<{ id: string; actionID: number; type: string; content: string; submitTime: string } | null>(null);
-    const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
+    const [popupPosition, setPopupPosition] = useState<{ x: number; y: number; direction: 'up' | 'down' | 'left' | 'right'; arrowOffset: { x?: number; y?: number } } | null>(null);
 
     const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>>([]);
     const [maxActionID, setMaxActionID] = useState<number>(0);
@@ -1147,11 +1147,57 @@ const SessionPage = () => {
             const containerRect = containerRef.current?.getBoundingClientRect();
             
             if (containerRect) {
-                // Position popup above the FAB, relative to the container
-                setPopupPosition({
-                    x: rect.left - containerRect.left + rect.width / 2,
-                    y: rect.top - containerRect.top - 20, // 20px above the FAB
-                });
+                const POPUP_WIDTH = 320;
+                const POPUP_HEIGHT = 180; // estimated height
+                const GAP = 8; // distance from FAB
+                const PADDING = 8; // margin from container edges
+                
+                const fabCenterX = rect.left - containerRect.left + rect.width / 2;
+                const fabCenterY = rect.top - containerRect.top + rect.height / 2;
+                const fabTopY = rect.top - containerRect.top;
+                const fabBottomY = rect.bottom - containerRect.top;
+                
+                let direction: 'up' | 'down' | 'left' | 'right' = 'up';
+                let x = fabCenterX;
+                let y = fabTopY - GAP;
+                let arrowOffset: { x?: number; y?: number } = {};
+                
+                // Check if popup would extend above container
+                if (fabTopY - GAP - POPUP_HEIGHT < PADDING) {
+                    // Try positioning below
+                    direction = 'down';
+                    y = fabBottomY + GAP;
+                    
+                    // If still off-screen, try sides
+                    if (y + POPUP_HEIGHT > containerRect.height - PADDING) {
+                        // Try right
+                        if (fabCenterX + POPUP_WIDTH / 2 <= containerRect.width) {
+                            direction = 'right';
+                            x = fabCenterX + rect.width / 2 + GAP;
+                            y = fabCenterY;
+                            arrowOffset = { y: fabCenterY - (y - POPUP_HEIGHT / 2) };
+                        }
+                        // Try left
+                        else if (fabCenterX - POPUP_WIDTH / 2 >= 0) {
+                            direction = 'left';
+                            x = fabCenterX - rect.width / 2 - GAP;
+                            y = fabCenterY;
+                            arrowOffset = { y: fabCenterY - (y - POPUP_HEIGHT / 2) };
+                        }
+                    }
+                }
+                
+                // Constrain x position to keep popup within container horizontally
+                const minX = POPUP_WIDTH / 2 ;
+                const maxX = containerRect.width - POPUP_WIDTH / 2 - PADDING;
+                const constrainedX = Math.max(minX, Math.min(maxX, x));
+                
+                // Calculate arrow offset for up/down directions if x was constrained
+                if (direction === 'up' || direction === 'down') {
+                    arrowOffset.x = fabCenterX - constrainedX;
+                }
+                
+                setPopupPosition({ x: constrainedX, y, direction, arrowOffset });
             }
         }
         
@@ -1490,11 +1536,13 @@ const SessionPage = () => {
                 >
                     {selectedElement && popupPosition && (
                         <div 
-                            className={`detail-popup ${showDetailModal ? "visible" : ""}`}
+                            className={`detail-popup ${showDetailModal ? "visible" : ""} ${popupPosition.direction}`}
                             style={{ 
                                 left: `${popupPosition.x}px`, 
                                 top: `${popupPosition.y}px`,
-                            }}
+                                '--arrow-offset-x': popupPosition.arrowOffset.x !== undefined ? `${popupPosition.arrowOffset.x}px` : '0px',
+                                '--arrow-offset-y': popupPosition.arrowOffset.y !== undefined ? `${popupPosition.arrowOffset.y}px` : '0px',
+                            } as React.CSSProperties}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="detail-popup-header">
