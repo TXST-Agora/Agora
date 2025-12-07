@@ -388,7 +388,8 @@
 
 .detail-popup {
     position: absolute;
-    max-width: 320px;
+    max-width: 250px;
+    min-width: 250px;
     background: var(--card, #fff);
     color: var(--text, #111);
     border-radius: 12px;

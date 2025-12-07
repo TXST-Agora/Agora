@@ -1147,7 +1147,7 @@ const SessionPage = () => {
             const containerRect = containerRef.current?.getBoundingClientRect();
             
             if (containerRect) {
-                const POPUP_WIDTH = 320;
+                const POPUP_WIDTH = 250;
                 const POPUP_HEIGHT = 180; // estimated height
                 const GAP = 8; // distance from FAB
                 const PADDING = 8; // margin from container edges
@@ -1171,14 +1171,14 @@ const SessionPage = () => {
                     // If still off-screen, try sides
                     if (y + POPUP_HEIGHT > containerRect.height - PADDING) {
                         // Try right
-                        if (fabCenterX + POPUP_WIDTH / 2 <= containerRect.width) {
+                        if (fabCenterX + POPUP_WIDTH / 2 + PADDING <= containerRect.width) {
                             direction = 'right';
                             x = fabCenterX + rect.width / 2 + GAP;
                             y = fabCenterY;
                             arrowOffset = { y: fabCenterY - (y - POPUP_HEIGHT / 2) };
                         }
                         // Try left
-                        else if (fabCenterX - POPUP_WIDTH / 2 >= 0) {
+                        else if (fabCenterX - POPUP_WIDTH / 2 - PADDING >= 0) {
                             direction = 'left';
                             x = fabCenterX - rect.width / 2 - GAP;
                             y = fabCenterY;
@@ -1188,8 +1188,8 @@ const SessionPage = () => {
                 }
                 
                 // Constrain x position to keep popup within container horizontally
-                const minX = POPUP_WIDTH / 2 ;
-                const maxX = containerRect.width - POPUP_WIDTH / 2 - PADDING;
+                const minX = (POPUP_WIDTH / 2) + PADDING;
+                const maxX = containerRect.width - (POPUP_WIDTH / 2) - PADDING;
                 const constrainedX = Math.max(minX, Math.min(maxX, x));
                 
                 // Calculate arrow offset for up/down directions if x was constrained
