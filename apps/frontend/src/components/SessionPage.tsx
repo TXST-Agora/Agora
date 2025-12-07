@@ -30,6 +30,8 @@ const SessionPage = () => {
     const [showNoSpaceModal, setShowNoSpaceModal] = useState(false);
     const [input, setInput] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [validationError, setValidationError] = useState("");
+    const [submitError, setSubmitError] = useState("");
     const [sessionData, setSessionData] = useState<SessionData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string>("");
@@ -63,27 +65,37 @@ const SessionPage = () => {
         return true;
     }, []);
 
-    // Function to update action size in the database
-    const updateActionSizeInDB = useCallback(async (actionID: number, size: number) => {
+    // Function to update action size and/or color in the database
+    const updateActionInDB = useCallback(async (actionID: number, size?: number, color?: string) => {
         if (!sessionCode) return;
 
         try {
+            const body: { size?: number; color?: string } = {};
+            if (size !== undefined) body.size = size;
+            if (color !== undefined) body.color = color;
+
             const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/action/${actionID}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ size }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
-                console.error(`Failed to update action ${actionID} size:`, response.statusText);
+                console.error(`Failed to update action ${actionID}:`, response.statusText);
                 return;
             }
 
-            console.log(`Action ${actionID} size updated to ${size}px`);
+            if (size !== undefined && color !== undefined) {
+                console.log(`Action ${actionID} updated: size=${size}px, color=${color}`);
+            } else if (size !== undefined) {
+                console.log(`Action ${actionID} size updated to ${size}px`);
+            } else if (color !== undefined) {
+                console.log(`Action ${actionID} color updated to ${color}`);
+            }
         } catch (error) {
-            console.error(`Error updating action ${actionID} size:`, error);
+            console.error(`Error updating action ${actionID}:`, error);
         }
     }, [sessionCode]);
 
@@ -93,6 +105,8 @@ const SessionPage = () => {
 
         // Check if mode is sizePulse - only grow sizes in this mode
         const isSizePulseMode = sessionData?.mode?.toLowerCase() === 'sizepulse';
+        // Check if mode is colorShift - only change colors in this mode
+        const isColorShiftMode = sessionData?.mode?.toLowerCase() === 'colorshift';
 
         // Calculate size based on timeMargin (in seconds)
         // Base size: 48px, grows by 0.5px per second, max size: 150px
@@ -116,6 +130,61 @@ const SessionPage = () => {
             return Math.min(calculatedSize, maxSize);
         };
 
+        // Calculate color based on timeMargin (in seconds)
+        // Transitions from green → yellow → orange → red
+        // Only changes if mode is colorShift
+        const calculateColorFromTimeMargin = (timeMargin: number | null): string | null => {
+            // If not colorShift mode, return null to use default color
+            if (!isColorShiftMode) {
+                return null;
+            }
+            
+            if (timeMargin === null || timeMargin <= 0) {
+                // Start with green
+                return '#16a34a';
+            }
+            
+            // Color transition thresholds (in seconds)
+            // Longer intervals for smoother, more gradual transitions
+            const greenToYellow = 60;   // 0-60s: green to yellow
+            const yellowToOrange = 120;   // 60-120s: yellow to orange
+            const orangeToRed = 180;      // 120-180s: orange to red
+            const maxRed = 240;          // 180-240s: fully red, stays red after
+            
+            // Color definitions (RGB)
+            const green = { r: 22, g: 163, b: 74 };    // #16a34a
+            const yellow = { r: 234, g: 179, b: 8 };   // #eab308
+            const orange = { r: 249, g: 115, b: 22 };  // #f97316
+            const red = { r: 220, g: 38, b: 38 };      // #dc2626
+            
+            // Helper function to interpolate between two colors
+            const interpolateColor = (color1: { r: number; g: number; b: number }, 
+                                     color2: { r: number; g: number; b: number }, 
+                                     factor: number): string => {
+                const r = Math.round(color1.r + (color2.r - color1.r) * factor);
+                const g = Math.round(color1.g + (color2.g - color1.g) * factor);
+                const b = Math.round(color1.b + (color2.b - color1.b) * factor);
+                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            };
+            
+            if (timeMargin <= greenToYellow) {
+                // Green to yellow (0-60s)
+                const factor = timeMargin / greenToYellow;
+                return interpolateColor(green, yellow, factor);
+            } else if (timeMargin <= yellowToOrange) {
+                // Yellow to orange (60-120s)
+                const factor = (timeMargin - greenToYellow) / (yellowToOrange - greenToYellow);
+                return interpolateColor(yellow, orange, factor);
+            } else if (timeMargin <= orangeToRed) {
+                // Orange to red (120-180s)
+                const factor = (timeMargin - yellowToOrange) / (orangeToRed - yellowToOrange);
+                return interpolateColor(orange, red, factor);
+            } else {
+                // Fully red (180s+)
+                return '#dc2626';
+            }
+        };
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/actions/times`);
             if (!response.ok) {
@@ -137,6 +206,7 @@ const SessionPage = () => {
                         );
                         
                         let newSize: number;
+                        let newColor: string | null = null;
                         let timeMargin: number | null = null;
                         
                         // If not sizePulse mode, always use base size (48px)
@@ -162,24 +232,69 @@ const SessionPage = () => {
                             }
                         }
                         
+                        // Calculate color based on timeMargin (only in colorShift mode)
+                        if (isColorShiftMode) {
+                            if (actionData) {
+                                // Use timeMargin from backend
+                                timeMargin = actionData.timeMargin ?? timeMargin;
+                                newColor = calculateColorFromTimeMargin(timeMargin);
+                            } else if (element.submitTime) {
+                                // Element not in backend response yet - calculate from submitTime
+                                const submitTime = new Date(element.submitTime);
+                                const now = new Date();
+                                timeMargin = (now.getTime() - submitTime.getTime()) / 1000;
+                                newColor = calculateColorFromTimeMargin(timeMargin);
+                            }
+                        }
+                        
                         const currentSize = element.size ?? 48; // Default to 48 if size is undefined
+                        const currentColor = element.color;
+                        
+                        // Determine if we need to update
+                        const sizeChanged = currentSize !== newSize;
+                        
+                        // In colorShift mode, always use calculated color (not backend color)
+                        // In other modes, use backend color if available
+                        const finalColor = isColorShiftMode && newColor !== null 
+                            ? newColor 
+                            : (actionData?.color || element.color);
+                        
+                        // Check if color changed
+                        const colorChanged = finalColor !== currentColor;
                         
                         // Update size if it has changed (only in sizePulse mode)
-                        if (currentSize !== newSize) {
+                        if (sizeChanged) {
                             console.log(`Updating size for ${element.type} actionID ${element.actionID}: ${currentSize} -> ${newSize}`);
                             
                             // Only update in database if we have actionData (from backend) and mode is sizePulse
                             if (actionData && isSizePulseMode) {
-                                updateActionSizeInDB(element.actionID, newSize);
+                                // If in colorShift mode and we have a calculated color, update both
+                                if (isColorShiftMode && newColor !== null) {
+                                    updateActionInDB(element.actionID, newSize, newColor);
+                                } else {
+                                    updateActionInDB(element.actionID, newSize);
+                                }
+                            }
+                            
+                            // Always update color in UI if it changed or if in colorShift mode with calculated color
+                            return {
+                                ...element,
+                                size: newSize,
+                                color: finalColor,
+                            };
+                        } else if (colorChanged || (isColorShiftMode && newColor !== null)) {
+                            // Update color if it changed, or if in colorShift mode (always update to keep in sync)
+                            if (actionData && isColorShiftMode && newColor !== null) {
+                                // Backend requires size to be present, so include current size
+                                updateActionInDB(element.actionID, currentSize, newColor);
                             }
                             
                             return {
                                 ...element,
-                                size: newSize,
-                                color: actionData?.color || element.color,
+                                color: finalColor,
                             };
-                        } else if (actionData && actionData.color && actionData.color !== element.color) {
-                            // Update color even if size hasn't changed
+                        } else if (actionData && actionData.color && actionData.color !== element.color && !isColorShiftMode) {
+                            // Update color from backend if not in colorShift mode
                             return {
                                 ...element,
                                 color: actionData.color,
@@ -372,7 +487,7 @@ const SessionPage = () => {
         } catch (error) {
             console.error("Error fetching actions with times:", error);
         }
-    }, [sessionCode, sessionData, updateActionSizeInDB, getAvailableBounds]);
+    }, [sessionCode, sessionData, updateActionInDB, getAvailableBounds]);
 
     // Load session data on mount
     useEffect(() => {
@@ -803,18 +918,22 @@ const SessionPage = () => {
 
     const submitElement = async (type: string) => {
         const trimmed = input.trim();
+        setValidationError("");
+        setSubmitError("");
+        
         if (!trimmed) {
             // simple client-side validation
-            alert("Please type a response before submitting.");
+            setValidationError("Please type a response before submitting.");
             return;
         }
 
         if (!sessionCode) {
-            alert("Session code is missing. Please check the URL.");
+            setValidationError("Session code is missing. Please check the URL.");
             return;
         }
 
         setIsSubmitting(true);
+        setSubmitError("");
 
         try {
             // Generate numeric actionID on frontend (1-based, incrementing)
@@ -987,18 +1106,31 @@ const SessionPage = () => {
             setMaxActionID(backendActionID);
 
             setInput("");
+            setValidationError("");
+            setSubmitError("");
             if(type == "question") setShowAskModal(false);
             if(type == "comment" ) setShowCommentModal(false)
             setVisible(false);
         } catch (error) {
-            alert(error instanceof Error ? error.message : "Failed to submit. Please try again.");
+            setSubmitError(error instanceof Error ? error.message : "Failed to submit. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const handleRetry = () => {
+        if (!isSubmitting) {
+            const currentType = showAskModal ? "question" : showCommentModal ? "comment" : "";
+            if (currentType) {
+                submitElement(currentType);
+            }
+        }
+    };
+
     const cancelInput = () => {
         setInput("");
+        setValidationError("");
+        setSubmitError("");
         setShowAskModal(false);
         setShowCommentModal(false);
         setShowNoSpaceModal(false);
@@ -1053,6 +1185,8 @@ const SessionPage = () => {
                         className="fab-option"
                         onClick={() => {
                             setOpen(false);
+                            setValidationError("");
+                            setSubmitError("");
                             setShowAskModal(true);
                         }}
                     >
@@ -1064,6 +1198,8 @@ const SessionPage = () => {
                         className="fab-option"
                         onClick={() => {
                             setOpen(false);
+                            setValidationError("");
+                            setSubmitError("");
                             setShowCommentModal(true);
                         }}
                     >
@@ -1095,10 +1231,13 @@ const SessionPage = () => {
                 {submittedElements.map((f) => {
                     const maxSize = 150;
                     const isMaxSize = f.size != null && f.size >= maxSize;
+                    const maxRedColor = '#dc2626';
+                    const isMaxRed = sessionData?.mode?.toLowerCase() === 'colorshift' && f.color === maxRedColor;
+                    const shouldPulse = isMaxSize || isMaxRed;
                     return (
                         <button
                             key={f.id}
-                            className={`fab-element ${isMaxSize ? 'pulse' : ''}`}
+                            className={`fab-element ${shouldPulse ? 'pulse' : ''}`}
                             title={`${f.content}`}
                             aria-label={`submitted-${f.type}-${f.actionID}`}
                             style={{ 
@@ -1106,7 +1245,7 @@ const SessionPage = () => {
                                 top: f.y != null ? `${f.y}px` : undefined,
                                 width: f.size != null ? `${f.size}px` : undefined,
                                 height: f.size != null ? `${f.size}px` : undefined,
-                                backgroundColor: f.color || undefined,
+                                ...(f.color ? { background: f.color } : {}),
                             }}
                             id={String(f.actionID)}
                         >
@@ -1126,16 +1265,50 @@ const SessionPage = () => {
                 >
                     <div className={`modal ${showAskModal ? "visible": ""} `}>
                         <h2>Ask a Question</h2>
+                        
+                        {submitError && (
+                            <div
+                                className="error-banner"
+                                role="alert"
+                                aria-live="assertive"
+                            >
+                                <span className="error-message">{submitError}</span>
+                                <button
+                                    type="button"
+                                    className="error-retry"
+                                    onClick={handleRetry}
+                                    disabled={isSubmitting}
+                                    aria-label="Retry submitting question"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        )}
+
                         <label htmlFor="question-input" className="visually-hidden">Type your question</label>
                         <textarea
                             id="question-input"
                             className="input"
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={(e) => {
+                                setInput(e.target.value);
+                                setValidationError("");
+                                setSubmitError("");
+                            }}
                             placeholder="Type your question here..."
                             rows={6}
 
                         />
+
+                        {validationError && (
+                            <div 
+                                className="message error-message" 
+                                role="alert" 
+                                aria-live="polite"
+                            >
+                                {validationError}
+                            </div>
+                        )}
 
                         <div className="modal-buttons">
                             <button 
@@ -1168,16 +1341,50 @@ const SessionPage = () => {
 
                     <div className={`modal ${showCommentModal ? "visible": ""}`}>
                         <h2>Leave a Comment</h2>
+                        
+                        {submitError && (
+                            <div
+                                className="error-banner"
+                                role="alert"
+                                aria-live="assertive"
+                            >
+                                <span className="error-message">{submitError}</span>
+                                <button
+                                    type="button"
+                                    className="error-retry"
+                                    onClick={handleRetry}
+                                    disabled={isSubmitting}
+                                    aria-label="Retry submitting comment"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        )}
+
                         <label htmlFor="comment-input" className="visually-hidden">Type your comment</label>
                         <textarea
                             id="comment-input"
                             className="input"
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={(e) => {
+                                setInput(e.target.value);
+                                setValidationError("");
+                                setSubmitError("");
+                            }}
                             placeholder="Type your comment here..."
                             rows={6}
 
                         />
+
+                        {validationError && (
+                            <div 
+                                className="message error-message" 
+                                role="alert" 
+                                aria-live="polite"
+                            >
+                                {validationError}
+                            </div>
+                        )}
 
                         <div className="modal-buttons">
                             <button 

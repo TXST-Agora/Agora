@@ -411,10 +411,13 @@ export const getActionsEndpoint = async (req: Request, res: Response): Promise<v
 
 /**
  * PATCH /api/session/:sessionCode/action/:actionID
- * Updates the size (and optionally color) of a specific action
+ * Updates the size and/or color of a specific action
  * Request body should contain: { size: number, color?: string }
+ * - size is required and must be a positive number
+ * - color is optional and will be updated if provided
+ * Used by sizePulse mode to update element sizes and colorShift mode to update element colors
  */
-export const updateActionSize = async (req: Request, res: Response): Promise<void> => {
+export const updateActionIcon = async (req: Request, res: Response): Promise<void> => {
   // Extract variables early so they're available in catch block
   const { sessionCode, actionID } = req.params;
   const { size, color } = req.body;
@@ -485,14 +488,14 @@ export const updateActionSize = async (req: Request, res: Response): Promise<voi
     session.markModified('actions');
     await session.save();
 
-    console.log('Action size updated:', { sessionCode, actionID: numericActionID, size: numericSize });
+    console.log('Action icon updated:', { sessionCode, actionID: numericActionID, size: numericSize, color });
 
     res.status(200).json({
       message: 'Action updated',
       action: updatedAction,
     });
   } catch (error) {
-    console.error('Error updating action size:', error instanceof Error ? error.message : String(error), {
+    console.error('Error updating action icon:', error instanceof Error ? error.message : String(error), {
       sessionCode: sessionCode || 'unknown',
       actionID: actionID || 'unknown',
       size: size || 'unknown',

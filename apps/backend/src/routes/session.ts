@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionSize } from '../controllers/sessionController.js';
+import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionIcon } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -29,9 +29,9 @@ router.get('/:sessionCode/actions/times', getActionsEndpoint);
 
 /**
  * PATCH /api/session/:sessionCode/action/:actionID
- * Updates the size (and optionally color) of a specific action
+ * Updates the size and color of a specific action
  */
-router.patch('/:sessionCode/action/:actionID', updateActionSize);
+router.patch('/:sessionCode/action/:actionID', updateActionIcon);
 
 /**
  * GET /api/session/:sessionCode/:actionID

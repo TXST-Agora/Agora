@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -81,8 +81,7 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Ask a question dialog/i)).toBeVisible();
             });
 
-            it('shows alert when submitting with empty input', async () => {
-                const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+            it('shows validation error when submitting with empty input', async () => {
                 renderWithRouter();
                 await waitFor(() => {
                     expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
@@ -92,11 +91,13 @@ describe("SessionPage", () => {
                 const askButton = screen.getByText(/\?/i);
                 fireEvent.click(askButton);
                 
-                const submitButton = screen.getAllByText(/Submit/)[0];
+                const askModal = screen.getByLabelText(/Ask a question dialog/i);
+                const submitButton = within(askModal).getByText(/Submit/);
                 fireEvent.click(submitButton);
                 
-                expect(alertSpy).toHaveBeenCalledWith("Please type a response before submitting.");
-                alertSpy.mockRestore();
+                await waitFor(() => {
+                    expect(within(askModal).getByText("Please type a response before submitting.")).toBeInTheDocument();
+                });
             });
 
             it('closes modal when Cancel button is clicked', async () => {
@@ -420,8 +421,7 @@ describe("SessionPage", () => {
                 expect(screen.getByLabelText(/Leave a comment dialog/i)).toBeVisible();
             });
 
-            it('shows alert when submitting with empty input', async () => {
-                const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+            it('shows validation error when submitting with empty input', async () => {
                 renderWithRouter();
                 await waitFor(() => {
                     expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
@@ -431,11 +431,13 @@ describe("SessionPage", () => {
                 const commentButton = screen.getByText(/✎/i);
                 fireEvent.click(commentButton);
                 
-                const submitButton = screen.getAllByText(/Submit/)[1];
+                const commentModal = screen.getByLabelText(/Leave a comment dialog/i);
+                const submitButton = within(commentModal).getByText(/Submit/);
                 fireEvent.click(submitButton);
                 
-                expect(alertSpy).toHaveBeenCalledWith("Please type a response before submitting.");
-                alertSpy.mockRestore();
+                await waitFor(() => {
+                    expect(within(commentModal).getByText("Please type a response before submitting.")).toBeInTheDocument();
+                });
             });
 
             it('closes modal when Cancel button is clicked', async () => {
@@ -549,7 +551,6 @@ describe("SessionPage", () => {
             });
 
             it('trims whitespace before validation', async () => {
-                const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
                 renderWithRouter();
                 await waitFor(() => {
                     expect(screen.getByLabelText(/Open actions/i)).toBeInTheDocument();
@@ -559,14 +560,16 @@ describe("SessionPage", () => {
                 const commentButton = screen.getByText(/✎/i);
                 fireEvent.click(commentButton);
                 
-                const textarea = screen.getByLabelText(/Type your comment/i) as HTMLTextAreaElement;
+                const commentModal = screen.getByLabelText(/Leave a comment dialog/i);
+                const textarea = within(commentModal).getByLabelText(/Type your comment/i) as HTMLTextAreaElement;
                 fireEvent.change(textarea, { target: { value: '   \n\t  ' } });
                 
-                const submitButton = screen.getAllByText(/Submit/)[1];
+                const submitButton = within(commentModal).getByText(/Submit/);
                 fireEvent.click(submitButton);
                 
-                expect(alertSpy).toHaveBeenCalledWith("Please type a response before submitting.");
-                alertSpy.mockRestore();
+                await waitFor(() => {
+                    expect(within(commentModal).getByText("Please type a response before submitting.")).toBeInTheDocument();
+                });
             });
 
             it('generates a new FAB comment element on successful submit', async () => {
