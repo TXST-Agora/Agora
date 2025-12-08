@@ -1210,16 +1210,58 @@ const SessionPage = () => {
         setPopupPosition(null);
     };
 
-    const removeElement = (array: Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>,  itemIndex: number) => {
-        const arr = array.filter(element => element.actionID !== itemIndex);
-        setSubmittedElements(arr);
-        //call backend API using PATCH and array
+    const removeElement = async (itemIndex: number) => {
+        if (!sessionCode) {
+            alert("Session code is missing. Please check the URL.");
+            return;
+        }
+
         try {
+            // Filter out the element with the matching actionID
+            const newArr = submittedElements.filter((element) => element.actionID !== itemIndex);
+            
+            // Prepare the data to send to backend - ensure we're sending the full action objects
+            const actionData = newArr.map(el => ({
+                id: el.id,
+                actionID: el.actionID,
+                type: el.type,
+                content: el.content,
+                submitTime: el.submitTime,
+                x: el.x,
+                y: el.y,
+                size: el.size,
+                color: el.color,
+            }));
+
+            console.log('Sending PATCH request with data:', actionData);
+
+            const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/action`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(actionData),
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+            const responseData = await response.json().catch(() => null);
+            console.log('Response data:', responseData);
+
+            if (!response.ok) {
+                throw new Error(responseData?.message || `Server error: ${response.status}`);
+            }
+
+            // Update local state
+            setSubmittedElements(newArr);
+            console.log(`Successfully removed action ${itemIndex}. Remaining elements: ${newArr.length}`);
             
         } catch (error) {
-            
+            console.error("Error removing an element:", error);
+            alert(error instanceof Error ? error.message : "Failed to remove element");
         }
-    }
+    };
 
     if (isLoading) {
         return (
@@ -1561,7 +1603,7 @@ const SessionPage = () => {
                                     {selectedElement.type === "question" ? "Question" : "Comment"}
                                 </h2>
                                 <button className="element-remove" onClick={ () => {
-                                    removeElement(submittedElements, selectedElement.actionID); 
+                                    removeElement(selectedElement.actionID); 
                                     closeDetailModal();
                                     }}> Remove </button>
                             </div>

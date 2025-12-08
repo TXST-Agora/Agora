@@ -331,10 +331,86 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
 /**
  * PATCH /api/session/:sessionCode/action
  * Changes the actions array to exclude a certain element
+ * Request body should contain the array of actions. 
  */
 export const removeSessionAction = async (req: Request, res: Response): Promise<void> => {
+  const { sessionCode } = req.params;
 
-}
+  try {
+    // Validate sessionCode
+    if (!sessionCode) {
+      res.status(400).json({ 
+        message: 'sessionCode is required' 
+      });
+      return;
+    }
+
+    // Validate request body
+    if (!Array.isArray(req.body)) {
+      res.status(400).json({ 
+        message: 'Request body must be an array of actions' 
+      });
+      return;
+    }
+
+    // Find the session
+    const session = await Session.findOne({ sessionCode });
+    if (!session) {
+      res.status(404).json({ 
+        message: 'Session not found' 
+      });
+      return;
+    }
+
+    // Validate each action in the array has required fields
+    for (const action of req.body) {
+      if (!action.id || !action.actionID || !action.type || !action.content) {
+        res.status(400).json({ 
+          message: 'Each action must have id, actionID, type, and content fields' 
+        });
+        return;
+      }
+    }
+
+
+    // Update the actions array
+    session.actions = req.body;
+
+    // Mark actions array as modified to ensure Mongoose saves nested changes
+    session.markModified('actions');
+    
+    // Save the session and verify it was saved
+    const savedSession = await session.save();
+    console.log('[removeSessionAction] Session saved, actions count:', savedSession.actions?.length || 0);
+    
+    // Verify the actions were actually saved
+    if (!savedSession.actions || !Array.isArray(savedSession.actions)) {
+      console.error('Actions were not saved to database:', { sessionCode });
+      res.status(500).json({ 
+        message: 'Failed to save actions to database', 
+        error: 'Actions array was not persisted' 
+      });
+      return;
+    }
+
+    console.log('Actions successfully updated:', { sessionCode, actionCount: savedSession.actions.length });
+
+    res.status(200).json({ 
+      message: 'Actions updated', 
+      actions: savedSession.actions
+    });
+    
+  } catch (error) {
+    console.error('Error updating actions for session:', error instanceof Error ? error.message : String(error), {
+      sessionCode: sessionCode || 'unknown'
+    });
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      message: 'Failed to update actions', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+};
 
 /**
  * GET /api/session/:sessionCode/:actionID
