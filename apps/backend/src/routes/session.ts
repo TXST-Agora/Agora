@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionIcon } from '../controllers/sessionController.js';
+import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionIcon, removeSessionAction} from '../controllers/sessionController.js';
 
 const router = Router();
 
