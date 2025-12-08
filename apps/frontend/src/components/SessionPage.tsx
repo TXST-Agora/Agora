@@ -1211,9 +1211,15 @@ const SessionPage = () => {
     };
 
     const removeElement = (array: Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>,  itemIndex: number) => {
-    const arr = array.filter(element => element.actionID !== itemIndex);
-    setSubmittedElements(arr);
-}
+        const arr = array.filter(element => element.actionID !== itemIndex);
+        setSubmittedElements(arr);
+        //call backend API using PATCH and array
+        try {
+            
+        } catch (error) {
+            
+        }
+    }
 
     if (isLoading) {
         return (

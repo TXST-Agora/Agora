@@ -329,6 +329,14 @@ export const addSessionAction = async (req: Request, res: Response): Promise<voi
 };
 
 /**
+ * PATCH /api/session/:sessionCode/action
+ * Changes the actions array to exclude a certain element
+ */
+export const removeSessionAction = async (req: Request, res: Response): Promise<void> => {
+
+}
+
+/**
  * GET /api/session/:sessionCode/:actionID
  * Gets the content of a specific action by sessionCode and actionID
  */

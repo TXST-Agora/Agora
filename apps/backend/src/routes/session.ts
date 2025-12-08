@@ -22,6 +22,12 @@ router.post('/create', createSessionEndpoint);
 router.post('/:sessionCode/action', addSessionAction);
 
 /**
+ * PATCH /api/session/:sessionCode/action
+ * Changes the actions array to exclude a certain element
+ */
+router.patch('/:sessionCode/action', removeSessionAction);
+
+/**
  * GET /api/session/:sessionCode/actions/times
  * Gets all actionIDs and their start_time for a specific session, along with time margins
  */
