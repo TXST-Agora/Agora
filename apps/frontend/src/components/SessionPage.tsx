@@ -1373,30 +1373,13 @@ const SessionPage = () => {
                                 ...(f.color ? { background: f.color } : {}),
                             }}
                             id={String(f.actionID)}
+                            onClick={(e) => openDetailModal(f, e.currentTarget)}
                         >
                             {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">✎</span>}
                         </button>
                     );
                 })}
-                {submittedElements.map((f) => (
-                    <button
-                        key={f.id}
-                        className="fab-element"
-                        title={`${f.content}`}
-                        aria-label={`submitted-${f.type}-${f.actionID}`}
-                        style={{ 
-                            left: f.x != null ? `${f.x}px` : undefined, 
-                            top: f.y != null ? `${f.y}px` : undefined,
-                            width: f.size != null ? `${f.size}px` : undefined,
-                            height: f.size != null ? `${f.size}px` : undefined,
-                            backgroundColor: f.color || undefined,
-                        }}
-                        id={String(f.actionID)}
-                        onClick={(e) => openDetailModal(f, e.currentTarget)}
-                    >
-                        {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">🗩</span>}
-                    </button>
-                ))}
+                
             </div>
                 <div
                     className= {`modal-overlay ${showAskModal ? "visible" : ""}`}
