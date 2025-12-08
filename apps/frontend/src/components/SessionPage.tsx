@@ -1226,9 +1226,7 @@ const SessionPage = () => {
                 actionID: el.actionID,
                 type: el.type,
                 content: el.content,
-                submitTime: el.submitTime,
-                x: el.x,
-                y: el.y,
+                start_time: el.submitTime,
                 size: el.size,
                 color: el.color,
             }));
