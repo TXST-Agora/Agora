@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionIcon } from '../controllers/sessionController.js';
+import { createSessionCode, createSessionEndpoint, getSession, addSessionAction, getActionContentEndpoint, getActionsEndpoint, updateActionIcon, removeSessionAction} from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -20,6 +20,12 @@ router.post('/create', createSessionEndpoint);
  * Adds a new action (question/comment) to a session
  */
 router.post('/:sessionCode/action', addSessionAction);
+
+/**
+ * PATCH /api/session/:sessionCode/action
+ * Changes the actions array to exclude a certain element
+ */
+router.patch('/:sessionCode/action', removeSessionAction);
 
 /**
  * GET /api/session/:sessionCode/actions/times
