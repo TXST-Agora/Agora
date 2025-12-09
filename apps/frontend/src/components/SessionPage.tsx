@@ -35,6 +35,9 @@ const SessionPage = () => {
     const [sessionData, setSessionData] = useState<SessionData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string>("");
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedElement, setSelectedElement] = useState<{ id: string; actionID: number; type: string; content: string; submitTime: string } | null>(null);
+    const [popupPosition, setPopupPosition] = useState<{ x: number; y: number; direction: 'up' | 'down' | 'left' | 'right'; arrowOffset: { x?: number; y?: number } } | null>(null);
 
     const [submittedElements, setSubmittedElements] = useState<Array<{ id: string; actionID: number; type: string; content: string; submitTime: string; x?: number; y?: number; size?: number; color?: string }>>([]);
     const [maxActionID, setMaxActionID] = useState<number>(0);
@@ -119,7 +122,7 @@ const SessionPage = () => {
                 return baseSize;
             }
             
-            const growthRate = 0.5; // pixels per second (slower growth)
+            const growthRate = 2.5; // pixels per second (faster growth)
             const maxSize = 150;
             
             if (timeMargin === null || timeMargin <= 0) {
@@ -145,11 +148,11 @@ const SessionPage = () => {
             }
             
             // Color transition thresholds (in seconds)
-            // Longer intervals for smoother, more gradual transitions
-            const greenToYellow = 60;   // 0-60s: green to yellow
-            const yellowToOrange = 120;   // 60-120s: yellow to orange
-            const orangeToRed = 180;      // 120-180s: orange to red
-            const maxRed = 240;          // 180-240s: fully red, stays red after
+            // Faster transitions for quicker color changes
+            const greenToYellow = 20;   // 0-20s: green to yellow
+            const yellowToOrange = 40;   // 20-40s: yellow to orange
+            const orangeToRed = 60;      // 40-60s: orange to red
+            const maxRed = 80;          // 60-80s: fully red, stays red after
             
             // Color definitions (RGB)
             const green = { r: 22, g: 163, b: 74 };    // #16a34a
@@ -1136,6 +1139,128 @@ const SessionPage = () => {
         setShowNoSpaceModal(false);
     };
 
+    const openDetailModal = (element: { id: string; actionID: number; type: string; content: string; submitTime: string }, fabElement?: Element) => {
+        setSelectedElement(element);
+        
+        if (fabElement) {
+            const rect = fabElement.getBoundingClientRect();
+            const containerRect = containerRef.current?.getBoundingClientRect();
+            
+            if (containerRect) {
+                const POPUP_WIDTH = 250;
+                const POPUP_HEIGHT = 180; // estimated height
+                const GAP = 8; // distance from FAB
+                const PADDING = 8; // margin from container edges
+                
+                const fabCenterX = rect.left - containerRect.left + rect.width / 2;
+                const fabCenterY = rect.top - containerRect.top + rect.height / 2;
+                const fabTopY = rect.top - containerRect.top;
+                const fabBottomY = rect.bottom - containerRect.top;
+                
+                let direction: 'up' | 'down' | 'left' | 'right' = 'up';
+                let x = fabCenterX;
+                let y = fabTopY - GAP;
+                let arrowOffset: { x?: number; y?: number } = {};
+                
+                // Check if popup would extend above container
+                if (fabTopY - GAP - POPUP_HEIGHT < PADDING) {
+                    // Try positioning below
+                    direction = 'down';
+                    y = fabBottomY + GAP;
+                    
+                    // If still off-screen, try sides
+                    if (y + POPUP_HEIGHT > containerRect.height - PADDING) {
+                        // Try right
+                        if (fabCenterX + POPUP_WIDTH / 2 + PADDING <= containerRect.width) {
+                            direction = 'right';
+                            x = fabCenterX + rect.width / 2 + GAP;
+                            y = fabCenterY;
+                            arrowOffset = { y: fabCenterY - (y - POPUP_HEIGHT / 2) };
+                        }
+                        // Try left
+                        else if (fabCenterX - POPUP_WIDTH / 2 - PADDING >= 0) {
+                            direction = 'left';
+                            x = fabCenterX - rect.width / 2 - GAP;
+                            y = fabCenterY;
+                            arrowOffset = { y: fabCenterY - (y - POPUP_HEIGHT / 2) };
+                        }
+                    }
+                }
+                
+                // Constrain x position to keep popup within container horizontally
+                const minX = (POPUP_WIDTH / 2) + PADDING;
+                const maxX = containerRect.width - (POPUP_WIDTH / 2) - PADDING;
+                const constrainedX = Math.max(minX, Math.min(maxX, x));
+                
+                // Calculate arrow offset for up/down directions if x was constrained
+                if (direction === 'up' || direction === 'down') {
+                    arrowOffset.x = fabCenterX - constrainedX;
+                }
+                
+                setPopupPosition({ x: constrainedX, y, direction, arrowOffset });
+            }
+        }
+        
+        setShowDetailModal(true);
+    };
+
+    const closeDetailModal = () => {
+        setShowDetailModal(false);
+        setSelectedElement(null);
+        setPopupPosition(null);
+    };
+
+    const removeElement = async (itemIndex: number) => {
+        if (!sessionCode) {
+            alert("Session code is missing. Please check the URL.");
+            return;
+        }
+
+        try {
+            // Filter out the element with the matching actionID
+            const newArr = submittedElements.filter((element) => element.actionID !== itemIndex);
+            
+            // Prepare the data to send to backend - ensure we're sending the full action objects
+            const actionData = newArr.map(el => ({
+                id: el.id,
+                actionID: el.actionID,
+                type: el.type,
+                content: el.content,
+                start_time: el.submitTime,
+                size: el.size,
+                color: el.color,
+            }));
+
+            console.log('Sending PATCH request with data:', actionData);
+
+            const response = await fetch(`${API_BASE_URL}/api/session/${sessionCode}/action`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(actionData),
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+            const responseData = await response.json().catch(() => null);
+            console.log('Response data:', responseData);
+
+            if (!response.ok) {
+                throw new Error(responseData?.message || `Server error: ${response.status}`);
+            }
+
+            // Update local state
+            setSubmittedElements(newArr);
+            console.log(`Successfully removed action ${itemIndex}. Remaining elements: ${newArr.length}`);
+            
+        } catch (error) {
+            console.error("Error removing an element:", error);
+            alert(error instanceof Error ? error.message : "Failed to remove element");
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="session-page" ref={containerRef}>
@@ -1248,11 +1373,13 @@ const SessionPage = () => {
                                 ...(f.color ? { background: f.color } : {}),
                             }}
                             id={String(f.actionID)}
+                            onClick={(e) => openDetailModal(f, e.currentTarget)}
                         >
                             {f.type == "question" ? <span className="circle small">?</span> : <span className="circle small">✎</span>}
                         </button>
                     );
                 })}
+                
             </div>
                 <div
                     className= {`modal-overlay ${showAskModal ? "visible" : ""}`}
@@ -1429,6 +1556,46 @@ const SessionPage = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <div
+                    className={`detail-popup-overlay ${showDetailModal ? "visible" : ""}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="View element details"
+                    onClick={closeDetailModal}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Escape') closeDetailModal();
+                    }}
+                >
+                    {selectedElement && popupPosition && (
+                        <div 
+                            className={`detail-popup ${showDetailModal ? "visible" : ""} ${popupPosition.direction}`}
+                            style={{ 
+                                left: `${popupPosition.x}px`, 
+                                top: `${popupPosition.y}px`,
+                                '--arrow-offset-x': popupPosition.arrowOffset.x !== undefined ? `${popupPosition.arrowOffset.x}px` : '0px',
+                                '--arrow-offset-y': popupPosition.arrowOffset.y !== undefined ? `${popupPosition.arrowOffset.y}px` : '0px',
+                            } as React.CSSProperties}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="detail-popup-header">
+                                <h2>
+                                    {selectedElement.type === "question" ? "Question" : "Comment"}
+                                </h2>
+                                <button className="element-remove" onClick={ () => {
+                                    removeElement(selectedElement.actionID); 
+                                    closeDetailModal();
+                                    }}> Remove </button>
+                            </div>
+                            <div className="detail-popup-content">
+                                <p>{selectedElement.content}</p>
+                            </div>
+                            <div className="detail-popup-meta">
+                                <small>Submitted: {new Date(selectedElement.submitTime).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 
         
