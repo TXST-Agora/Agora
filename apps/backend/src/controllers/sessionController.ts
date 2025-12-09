@@ -847,8 +847,6 @@ export const updateActionIcon = async (req: Request, res: Response): Promise<voi
     session.markModified('actions');
     await session.save();
 
-    console.log('Action icon updated:', { sessionCode, actionID: numericActionID, size: numericSize, color });
-
     res.status(200).json({
       message: 'Action updated',
       action: updatedAction,

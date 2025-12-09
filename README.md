@@ -63,7 +63,7 @@ Agora is a full-stack web application that enables hosts to create interactive s
 1. **Clone the repository** (if not already cloned)
 ```bash
 git clone <repository-url>
-cd agora_forum_site
+cd agora
 ```
 
 2. **Install dependencies**
@@ -73,15 +73,15 @@ pnpm install
 
 3. **Configure environment variables**
 
-**Backend** (create `apps/backend/.env`):
+**Backend** :
 ```bash
-cp apps/backend/.env.example apps/backend/.env
+cp apps/backend/
 ```
 Update with your MongoDB connection string and server configuration.
 
-**Frontend** (create `apps/frontend/.env`):
+**Frontend**:
 ```bash
-cp apps/frontend/.env.example apps/frontend/.env
+cp apps/frontend/
 ```
 Update with your API endpoint configuration.
 
@@ -243,11 +243,6 @@ Test files:
 - `apps/backend/src/tests/unit/sessionController.test.ts`
 - `apps/backend/src/tests/unit/sessionService.test.ts`
 
-### Run All Tests
-```bash
-pnpm test
-```
-
 ## Available Scripts
 
 ### Root Commands
@@ -263,6 +258,7 @@ pnpm typecheck   # Run TypeScript type checking for entire workspace
 pnpm -C apps/backend dev         # Start development server
 pnpm -C apps/backend build       # Compile TypeScript to JavaScript
 pnpm -C apps/backend test        # Run backend tests
+pnpm -C apps/backend test:ui     # Run backend tests with UI
 pnpm -C apps/backend typecheck   # Check types
 ```
 
@@ -271,6 +267,7 @@ pnpm -C apps/backend typecheck   # Check types
 pnpm -C apps/frontend dev        # Start Vite development server
 pnpm -C apps/frontend build      # Build for production
 pnpm -C apps/frontend test       # Run frontend tests
+pnpm -C apps/frontend test:ui    # Run frontend tests with UI
 pnpm -C apps/frontend typecheck  # Check types
 ```
 
@@ -328,7 +325,7 @@ pnpm typecheck
 ## Development Notes
 
 ### Git Branch
-Current development branch: `SCRUM-24-Session-Page-Add-Action-Modal-with-host-actions`
+run on main branch
 
 ### Architecture
 The project follows MVC pattern with clear separation between:

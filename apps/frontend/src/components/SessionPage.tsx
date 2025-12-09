@@ -122,7 +122,7 @@ const SessionPage = () => {
                 return baseSize;
             }
             
-            const growthRate = 0.5; // pixels per second (slower growth)
+            const growthRate = 2.5; // pixels per second (faster growth)
             const maxSize = 150;
             
             if (timeMargin === null || timeMargin <= 0) {
@@ -148,11 +148,11 @@ const SessionPage = () => {
             }
             
             // Color transition thresholds (in seconds)
-            // Longer intervals for smoother, more gradual transitions
-            const greenToYellow = 60;   // 0-60s: green to yellow
-            const yellowToOrange = 120;   // 60-120s: yellow to orange
-            const orangeToRed = 180;      // 120-180s: orange to red
-            const maxRed = 240;          // 180-240s: fully red, stays red after
+            // Faster transitions for quicker color changes
+            const greenToYellow = 20;   // 0-20s: green to yellow
+            const yellowToOrange = 40;   // 20-40s: yellow to orange
+            const orangeToRed = 60;      // 40-60s: orange to red
+            const maxRed = 80;          // 60-80s: fully red, stays red after
             
             // Color definitions (RGB)
             const green = { r: 22, g: 163, b: 74 };    // #16a34a
