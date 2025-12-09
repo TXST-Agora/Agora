@@ -1,10 +1,15 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './JoinPage.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
 const JoinPage = () => {
+  const navigate = useNavigate();
   const [sessionCode, setSessionCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const validateCode = (codeValue: string): boolean => {
     return /^[A-Z0-9]{6}$/.test(codeValue);
@@ -18,9 +23,10 @@ const JoinPage = () => {
     setConfirmationMessage('');
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage('');
+    setConfirmationMessage('');
     
     const trimmedCode = sessionCode.trim();
 
@@ -30,13 +36,36 @@ const JoinPage = () => {
       return;
     }
 
+    setIsVerifying(true);
     setErrorMessage('');
-    setConfirmationMessage('Submitting...');
+    setConfirmationMessage('Verifying...');
 
-    setTimeout(() => {
-      window.alert('Code verified: ' + trimmedCode);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/session/${trimmedCode}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setErrorMessage('Session not found. Try again.');
+          setConfirmationMessage('');
+          setIsVerifying(false);
+          return;
+        } else {
+          setErrorMessage('Failed to verify session. Please try again.');
+          setConfirmationMessage('');
+          setIsVerifying(false);
+          return;
+        }
+      }
+
+      // Session exists, navigate to it
       setConfirmationMessage('');
-    }, 600);
+      setIsVerifying(false);
+      navigate(`/forum/${trimmedCode}`);
+    } catch (error) {
+      setErrorMessage('Failed to verify session. Please try again.');
+      setConfirmationMessage('');
+      setIsVerifying(false);
+    }
   };
 
   return (
@@ -59,7 +88,9 @@ const JoinPage = () => {
               onChange={handleInputChange}
               required
             />
-            <button type="submit" className="submit">Verify</button>
+            <button type="submit" className="submit" disabled={isVerifying}>
+              {isVerifying ? 'Verifying...' : 'Verify'}
+            </button>
           </form>
 
           <div className="message-container">

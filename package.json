@@ -11,5 +11,9 @@
     "typecheck": "pnpm -C apps/backend typecheck && pnpm -C apps/frontend typecheck",
     "lint": "echo \"TODO: lint config\"",
     "format": "echo \"TODO: format config\""
+  },
+  "devDependencies": {
+    "@csstools/css-calc": "^2.1.4",
+    "@csstools/css-color-parser": "^3.1.0"
   }
 }
